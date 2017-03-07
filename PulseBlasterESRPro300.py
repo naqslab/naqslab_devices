@@ -12,7 +12,7 @@
 #####################################################################
 
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker, runviewer_parser
-from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS, Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker
+from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS, Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker, PulseBlaster_No_DDS_Parser
 
 # note that ESR-Pro boards only have 21 channels
 # bits 21-23 are short pulse control bits
@@ -47,5 +47,9 @@ class pulseblasteresrpro300(Pulseblaster_No_DDS_Tab):
 class PulseblasterESRPro300Worker(PulseblasterNoDDSWorker):
     core_clock_freq = 300.0
     ESRPro = True
+    
+@runviewer_parser
+class PulseBlasterESRPro300_Parser(PulseBlaster_No_DDS_Parser):
+    num_DO = 24 # only 21 usable, flags 21-23 used for short pulses
     
      
