@@ -26,19 +26,19 @@ class StaticFreqAmp(StaticDDS):
         self.amplitude.default_value = amp_limits[0]
         
     def setphase(self,value,units=None):
-        raise LabscriptError('HPStaticFreq does not support phase control')
+        raise LabscriptError('StaticFreqAmp does not support phase control')
             
     def enable(self):       
         """overridden from StaticDDS so as not to provide time resolution -
         output can be enabled or disabled only at the start of the shot"""
         #self.gate.go_high() # don't think this is needed
-        raise LabscriptError('HPStaticFreq %s does not support a digital gate'%(self.name))
+        raise LabscriptError('StaticFreqAmp %s does not support a digital gate'%(self.name))
                             
     def disable(self):
         """overridden from StaticDDS so as not to provide time resolution -
         output can be enabled or disabled only at the start of the shot"""
         #self.gate.go_low() # don't think this is needed
-        raise LabscriptError('HPStaticFreq %s does not support a digital gate'%(self.name))
+        raise LabscriptError('StaticFreqAmp %s does not support a digital gate'%(self.name))
         
 @labscript_device              
 class SignalGenerator(Device):
