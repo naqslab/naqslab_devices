@@ -212,8 +212,8 @@ class SignalGeneratorTab(DeviceTab):
         
         
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
-    def send_clear(self):
-        value = self.status_ui.ref_button.isChecked()
+    def send_clear(self,widget=None):
+        value = self.status_ui.clear_button.isChecked()
         yield(self.queue_work(self._primary_worker,'clear',value))
        
 
