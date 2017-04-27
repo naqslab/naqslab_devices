@@ -49,7 +49,7 @@ class NovaTechDDS409B_AC(IntermediateDevice):
         as the argument) to check if there are certain unit calibration
         classes that they should apply to their outputs, if the user has
         not otherwise specified a calibration class"""
-        if device.connection in ['channel 0', 'channel 1']:
+        if device.connection in ['channel 0', 'channel 1', 'channel 2', 'channel 3']:
             # Default calibration classes for the non-static channels:
             return NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion, None
         else:
