@@ -50,6 +50,6 @@ class PulseblasterESRPro300Worker(PulseblasterNoDDSWorker):
     
 @runviewer_parser
 class PulseBlasterESRPro300_Parser(PulseBlaster_No_DDS_Parser):
-    num_DO = 24 # only 21 usable, flags 21-23 used for short pulses
+    num_flags = 24 # only 21 usable, flags 21-23 used for short pulses
     
      
