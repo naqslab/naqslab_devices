@@ -7,6 +7,7 @@
 
 from labscript_devices.SignalGenerator import *
 import labscript_utils.properties
+from labscript import LabscriptError
         
 @labscript_device              
 class HP_8642A(SignalGenerator):
