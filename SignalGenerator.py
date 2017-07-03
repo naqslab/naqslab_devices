@@ -120,6 +120,15 @@ from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MOD
 from blacs.device_base_class import DeviceTab
 from qtutils import UiLoader
 import os
+import sys
+
+# Imports for handling icons in STBstatus.ui
+if 'PySide' in sys.modules.copy():
+    from PySide.QtCore import QSize
+    from PySide.QtGui import QIcon
+else:
+    from PyQt4.QtCore import QSize
+    from PyQt4.QtGui import QIcon
 
 @BLACS_tab
 class SignalGeneratorTab(DeviceTab):
@@ -208,7 +217,12 @@ class SignalGeneratorTab(DeviceTab):
         self.status = yield(self.queue_work(self._primary_worker,'check_status'))
 
         for key in self.status_bits:
-            self.bit_values_widgets[key].setText(str(self.status[key]))
+            if self.status[key]:
+                icon = QIcon(':/qtutils/fugue/tick')
+            else:
+                icon = QIcon(':/qtutils/fugue/cross')
+            pixmap = icon.pixmap(QSize(16,16))
+            self.bit_values_widgets[key].setPixmap(pixmap)
         
         
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)

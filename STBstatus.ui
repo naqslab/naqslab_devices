@@ -62,8 +62,15 @@
      </item>
      <item>
       <widget class="QPushButton" name="clear_button">
-       <property name="text">
+       <property name="toolTip">
         <string>Clear</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../../Anaconda2/envs/labscript/Lib/site-packages/qtutils/icons/icons.qrc">
+         <normaloff>:/qtutils/fugue/arrow-circle.png</normaloff>:/qtutils/fugue/arrow-circle.png</iconset>
        </property>
        <property name="checkable">
         <bool>false</bool>
@@ -409,6 +416,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../Anaconda2/envs/labscript/Lib/site-packages/qtutils/icons/icons.qrc"/>
+ </resources>
  <connections/>
 </ui>

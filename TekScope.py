@@ -77,18 +77,27 @@ from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MOD
 from blacs.device_base_class import DeviceTab
 from qtutils import UiLoader
 import os
+import sys
+
+# Imports for handling icons in STBstatus.ui
+if 'PySide' in sys.modules.copy():
+    from PySide.QtCore import QSize
+    from PySide.QtGui import QIcon
+else:
+    from PyQt4.QtCore import QSize
+    from PyQt4.QtGui import QIcon
 
 @BLACS_tab
 class TekScopeTab(DeviceTab):
     # Status Byte Label Definitions for TDS200/1000/2000 series scopes
-    status_byte_labels = {'bit 7':'Power On', 
-                          'bit 6':'URQ',
-                          'bit 5':'Command Error',
-                          'bit 4':'Execution Error',
-                          'bit 3':'Device Error',
-                          'bit 2':'Query Error',
-                          'bit 1':'RQC',
-                          'bit 0':'Operation Complete'}
+    status_byte_labels = {'bit 7':'Unused', 
+                          'bit 6':'MSS',
+                          'bit 5':'ESB',
+                          'bit 4':'MAV',
+                          'bit 3':'Unused',
+                          'bit 2':'Unused',
+                          'bit 1':'Unused',
+                          'bit 0':'Unused'}
     
     def __init__(self,*args,**kwargs):
         '''You MUST override this class in order to define the device worker for any child devices.
@@ -141,7 +150,12 @@ class TekScopeTab(DeviceTab):
         self.status = yield(self.queue_work(self._primary_worker,'check_status'))
 
         for key in self.status_bits:
-            self.bit_values_widgets[key].setText(str(self.status[key]))
+            if self.status[key]:
+                icon = QIcon(':/qtutils/fugue/tick')
+            else:
+                icon = QIcon(':/qtutils/fugue/cross')
+            pixmap = icon.pixmap(QSize(16,16))
+            self.bit_values_widgets[key].setPixmap(pixmap)
         
         
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
