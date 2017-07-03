@@ -16,8 +16,8 @@ class StaticFreqAmp(StaticDDS):
     description = 'Frequency Source class for Signal Generators'
     allowed_children = [StaticAnalogQuantity]
     
-    @set_passed_properties()    
-    def __init__(self, name, parent_device, connection, freq_limits = (0.1,1057.5), freq_conv_class = None,freq_conv_params = {}, amp_limits = (-140,20), amp_conv_class = None, amp_conv_params = {}):
+    @set_passed_properties(property_names = {})    
+    def __init__(self, name, parent_device, connection, freq_limits = (), freq_conv_class = None,freq_conv_params = {}, amp_limits = (), amp_conv_class = None, amp_conv_params = {}):
         """Frequency and amplitude limits should be respected to ensure device is not sent out of range."""
         Device.__init__(self,name,parent_device,connection)
         self.frequency = StaticAnalogQuantity(self.name+'_freq',self,'freq',freq_limits,freq_conv_class,freq_conv_params)
@@ -31,26 +31,23 @@ class StaticFreqAmp(StaticDDS):
     def enable(self):       
         """overridden from StaticDDS so as not to provide time resolution -
         output can be enabled or disabled only at the start of the shot"""
-        #self.gate.go_high() # don't think this is needed
         raise LabscriptError('StaticFreqAmp %s does not support a digital gate'%(self.name))
                             
     def disable(self):
         """overridden from StaticDDS so as not to provide time resolution -
         output can be enabled or disabled only at the start of the shot"""
-        #self.gate.go_low() # don't think this is needed
         raise LabscriptError('StaticFreqAmp %s does not support a digital gate'%(self.name))
         
 @labscript_device              
 class SignalGenerator(VISA):
     description = 'Signal Generator'
     allowed_children = [StaticFreqAmp]
-    # define the scale factor - converts between BLACS front panel and 
+    # define the scale factor - converts between BLACS front panel and instr
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (100e3, 1057.5e6) # set in scaled unit (Hz)
+    freq_limits = () # set in scaled unit 
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
-    amp_limits = (-140, 20) # set in scaled unit (dBm)
-    # Output limits depend on frequency. Can be as low as 17 dBm
+    amp_limits = () # set in scaled unit
 
     @set_passed_properties()
     def __init__(self, name, VISA_name):
@@ -121,19 +118,20 @@ class SignalGeneratorTab(VISATab):
     base_max = {'freq':1057.5,  'amp':20}
     base_step = {'freq':1,    'amp':0.1}
     base_decimals = {'freq':6, 'amp':1}
-    # Status Byte Label Definitions for HP8642A
-    status_byte_labels = {'bit 7':'Parameter Changed', 
-                          'bit 6':'RQS',
-                          'bit 5':'Error',
-                          'bit 4':'Ready',
-                          'bit 3':'Local/Remote',
-                          'bit 2':'Execution Error',
-                          'bit 1':'Hardware Error',
-                          'bit 0':'End of Sweep'}
+
+    status_byte_labels = {'bit 7':'bit 7 label', 
+                          'bit 6':'bit 6 label',
+                          'bit 5':'bit 5 label',
+                          'bit 4':'bit 4 label',
+                          'bit 3':'bit 3 label',
+                          'bit 2':'bit 2 label',
+                          'bit 1':'bit 1 label',
+                          'bit 0':'bit 0 label'}
     
     def __init__(self,*args,**kwargs):
         if not hasattr(self,'device_worker_class'):
-                self.device_worker_class = SignalGeneratorWorker
+            #raise LabscriptError('%s __init__ method not overridden!'%self)
+            self.device_worker_class = SignalGeneratorWorker
         VISATab.__init__(self,*args,**kwargs)
     
     def initialise_GUI(self):
@@ -173,25 +171,19 @@ class SignalGeneratorWorker(VISAWorker):
     amp_scale_factor = 1.0
     
     # define instrument specific read and write strings for Freq & Amp control
-    freq_write_string = 'FR %d HZ'  #HP8642A can only accept 10 digits, in Hz
-    freq_query_string = 'FROA' #HP8642A returns 'FR sdddddddddd.0 HZ', in Hz
+    freq_write_string = ''  
+    freq_query_string = '' 
     def freq_parser(self,freq_string):
-        '''Frequency Query string parser for HP8642A
-        freq_string format is FR sdddddddddd.0 HZ
-        Returns float in instrument units, Hz (i.e. needs scaling to base_units)'''
-        return float(freq_string.split()[1])
-    amp_write_string = 'AP %.1f DM' #HP8642A accepts one decimal, in dBm
-    amp_query_string = 'APOA' #HP8642A returns 'AP sddd.d DM'
+        '''Frequency Query string parser
+        Needs to be over-ridden'''
+        freq = float(freq_string)
+        return freq
+    amp_write_string = '' 
+    amp_query_string = '' 
     def amp_parser(self,amp_string):
-        '''Amplitude Query string parser for HP8642A
-        amp_string format is AP sddd.d DM
-        Returns float in instrument units, dBm'''
-        # values less than -200 indicate instrument errors 
-        # -201: RF OFF
-        # -202: reverse power is tripped
-        amp = float(amp_string.split()[1])
-        if amp <= -200:
-            raise LabscriptError('RF of HP8642A is off!')
+        '''Amplitude Query string parser
+        Needs to be over-ridden'''
+        amp = float(amp_string)
         return amp
     
     def check_remote_values(self):

@@ -5,9 +5,9 @@
 #                                                                   #
 #####################################################################
 
-import labscript_utils.properties
-
 from labscript_devices.SignalGenerator import *
+from labscript import LabscriptError
+import labscript_utils.properties
         
 @labscript_device              
 class RS_SMF100A(SignalGenerator):
@@ -41,8 +41,6 @@ class RS_SMF100ATab(SignalGeneratorTab):
     def __init__(self,*args,**kwargs):
         self.device_worker_class = RS_SMF100AWorker
         SignalGeneratorTab.__init__(self,*args,**kwargs)
-       
-from labscript import LabscriptError
 
 @BLACS_worker
 class RS_SMF100AWorker(SignalGeneratorWorker):
