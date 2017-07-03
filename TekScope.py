@@ -99,7 +99,7 @@ class TekScopeTab(DeviceTab):
     
     def initialise_GUI(self):
         # load the status_ui for the STB register
-        self.status_ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),'sgstatus.ui'))
+        self.status_ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),'STBstatus.ui'))
         self.get_tab_layout().addWidget(self.status_ui)
                    
         # generate the dictionaries

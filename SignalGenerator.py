@@ -166,7 +166,7 @@ class SignalGeneratorTab(DeviceTab):
         # and auto place the widgets in the UI
         self.auto_place_widgets(("Frequency Output",dds_widgets))
         
-        self.status_ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),'sgstatus.ui'))
+        self.status_ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),'STBstatus.ui'))
         self.get_tab_layout().addWidget(self.status_ui)
                    
         # generate the dictionaries
