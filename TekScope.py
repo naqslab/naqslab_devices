@@ -100,26 +100,21 @@ import h5py
 @BLACS_worker
 class TekScopeWorker(VISAWorker):   
     # define instrument specific read and write strings
-    setup_string = ':HEADER OFF;*ESE 60;*SRE 32; *CLS;'
-    read_setup_string = ':DATA:SOURCE CH%d;:DAT:ENC RPB;WID 2;'
-    read_waveform_parameters_string = ':WFMPRE:XZE?;XIN?;YZE?;YMU?;YOFF?;'
+    setup_string = ':HEADER OFF;*ESE 60;*SRE 32;*CLS;:DAT:ENC RPB;WID 2;'
+    read_y_parameters_string = ':DAT:SOU CH%d;:WFMPRE:YZE?;YMU?;YOFF?'
     read_waveform_string = 'CURV?'
+    read_x_parameters_string = ':WFMPRE:XZE?;XIN?'
     
-    # define result parsers, if necessary
+    # define result parser
     def waveform_parser(self,raw_waveform_array,y0,dy,yoffset):
         '''Parses the numpy array from the CURV? query.'''
         return (raw_waveform_array - yoffset)*dy + y0
     
     def init(self):
-        # call the h5py lock and import
-        #global h5py; import labscript_utils.h5_lock, h5py
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
         # Override the timeout for longer scope waits
         self.connection.timeout = 10000
-        
-        # initialization stuff
-        self.connection.write(self.setup_string)
         
         # Query device name to ensure supported scope
         ident_string = self.connection.query('*IDN?')
@@ -127,7 +122,10 @@ class TekScopeWorker(VISAWorker):
             # Scope supported!
             return
         else:
-            raise LabscriptError('Device %s with VISA name %s not supported!' % (ident_string,self.VISA_name))        
+            raise LabscriptError('Device %s with VISA name %s not supported!' % (ident_string,self.VISA_name))  
+        
+        # initialization stuff
+        self.connection.write(self.setup_string)
             
     def transition_to_manual(self,abort = False):
         if not abort:         
@@ -142,15 +140,16 @@ class TekScopeWorker(VISAWorker):
             data = {}
             for connection,label,start_time in acquisitions:
                 channel_num = int(connection.split(' ')[-1])
-                [t0,dt,y0,dy,yoffset] = self.connection.query_ascii_values(self.read_setup_string % channel_num +
-                self.read_waveform_parameters_string, container=np.array, separator=';')
+                [y0,dy,yoffset] = self.connection.query_ascii_values(self.read_y_parameters_string % channel_num, container=np.array, separator=';')
                 raw_data = self.connection.query_binary_values(self.read_waveform_string,
                 datatype='H', is_big_endian=True, container=np.array)
                 data[connection] = self.waveform_parser(raw_data,y0,dy,yoffset)
             # Need to calculate the time array
             num_points = len(raw_data)
-            tarray = np.arange(0,num_points,1,dtype=np.float64)*dt - t0
-            data['time'] = tarray  
+            # read out the time parameters once outside the loop to save time
+            [t0, dt] = self.connection.query_ascii_values(self.read_x_parameters_string,
+                container=np.array, separator=';')
+            data['time'] = np.arange(0,num_points,1,dtype=np.float64)*dt - t0
             # define the dtypes for the h5 arrays
             dtypes = [('t', np.float64),('values', np.float32)]          
             
@@ -164,7 +163,7 @@ class TekScopeWorker(VISAWorker):
                 # write out the data to the h5file
                 for connection,label,start_time in acquisitions:
                     values = np.empty(num_points,dtype=dtypes)
-                    values['t'] = tarray
+                    values['t'] = data['time']
                     values['values'] = data[connection]
                     measurements.create_dataset(label, data=values)
                     # and save some timing info for reference to labscript time
