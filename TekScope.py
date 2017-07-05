@@ -96,7 +96,6 @@ class TekScopeTab(VISATab):
         self.supports_smart_programming(True) 
         self.statemachine_timeout_add(5000, self.status_monitor)        
        
-import h5py
 @BLACS_worker
 class TekScopeWorker(VISAWorker):   
     # define instrument specific read and write strings
@@ -111,6 +110,8 @@ class TekScopeWorker(VISAWorker):
         return (raw_waveform_array - yoffset)*dy + y0
     
     def init(self):
+        # import h5py with locks
+        global h5py; import labscript_utils.h5_lock, h5py
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
         # Override the timeout for longer scope waits
