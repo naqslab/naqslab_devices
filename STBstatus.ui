@@ -30,7 +30,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="byte_label">
        <property name="font">
         <font>
          <pointsize>10</pointsize>

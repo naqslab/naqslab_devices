@@ -118,7 +118,7 @@ class TekScopeWorker(VISAWorker):
         # Override the timeout for longer scope waits
         self.connection.timeout = 10000
         
-        # initialization stuff would go here
+        # initialization stuff
         self.connection.write(self.setup_string)
         
         # Query device name to ensure supported scope
@@ -136,8 +136,8 @@ class TekScopeWorker(VISAWorker):
                     # get acquisitions table values so we can close the file
                     acquisitions = hdf5_file['/devices/'+self.device_name+'/ACQUISITIONS'].value
                 except:
-                        # No acquisitions!
-                        return
+                    # No acquisitions!
+                    return
             # close lock on h5 to read from scope, it takes a while            
             data = {}
             for connection,label,start_time in acquisitions:
@@ -145,7 +145,7 @@ class TekScopeWorker(VISAWorker):
                 [t0,dt,y0,dy,yoffset] = self.connection.query_ascii_values(self.read_setup_string % channel_num +
                 self.read_waveform_parameters_string, container=np.array, separator=';')
                 raw_data = self.connection.query_binary_values(self.read_waveform_string,
-                datatype='H', is_big_endian=True)
+                datatype='H', is_big_endian=True, container=np.array)
                 data[connection] = self.waveform_parser(raw_data,y0,dy,yoffset)
             # Need to calculate the time array
             num_points = len(raw_data)

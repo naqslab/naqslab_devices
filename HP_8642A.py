@@ -42,7 +42,6 @@ class HP_8642ATab(SignalGeneratorTab):
         self.device_worker_class = HP_8642AWorker
         SignalGeneratorTab.__init__(self,*args,**kwargs)      
 
-import h5py
 @BLACS_worker
 class HP_8642AWorker(SignalGeneratorWorker):
     # define the scale factor
