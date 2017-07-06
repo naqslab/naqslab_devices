@@ -67,7 +67,11 @@ class HP_8642AWorker(SignalGeneratorWorker):
         # -201: RF OFF
         # -202: reverse power is tripped
         amp = float(amp_string.split()[1])
-        if amp <= -200:
-            raise LabscriptError('RF of HP8642A is off!')
-        return amp
+        if amp == -201:
+            raise LabscriptError('RF is off! HP8642A-VISA device: %s!'%self.VISA_name)
+        elif amp <= -200:
+            raise LabscriptError('HP8642A error code %d for VISA device: %s'%(amp,self.VISA_name))
+        else:
+            # No error on amp read
+            return amp
 

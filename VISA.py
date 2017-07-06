@@ -25,7 +25,7 @@ class VISA(Device):
     def generate_code(self, hdf5_file):
         # over-ride this method for child classes
         # it should not return anything
-        raise LabscriptError('generate_code() must be overridden for %s'%name)
+        raise LabscriptError('generate_code() must be overridden for %s'%self.name)
         
         
 from blacs.tab_base_classes import Worker, define_state

@@ -70,6 +70,6 @@ class RS_SMF100AWorker(SignalGeneratorWorker):
         # do some device specific error handling with status byte information
         if status['bit 2'] == True:
             errors = self.connection.query('SYST:ERR:ALL?')
-            raise LabscriptError('SMF100A has Errors in Queue: %s'%errors)
+            raise LabscriptError('SMF100A VISA device %s has Errors in Queue: %s'%(self.VISA_name,errors))
             
         return status
