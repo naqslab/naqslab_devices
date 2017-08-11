@@ -72,13 +72,14 @@ class TekScope(TriggerableDevice):
 
 @BLACS_tab
 class TekScopeTab(VISATab):
-    # Status Byte Label Definitions for TDS200/1000/2000 series scopes
+    # Event Byte Label Definitions for TDS200/1000/2000 series scopes
+    # Used bits set by '*ESE' command in setup string of worker class
     status_byte_labels = {'bit 7':'Unused', 
-                          'bit 6':'MSS',
-                          'bit 5':'ESB',
-                          'bit 4':'MAV',
-                          'bit 3':'Unused',
-                          'bit 2':'Unused',
+                          'bit 6':'Unused',
+                          'bit 5':'Command Error',
+                          'bit 4':'Execution Error',
+                          'bit 3':'Device Error',
+                          'bit 2':'Query Error',
                           'bit 1':'Unused',
                           'bit 0':'Unused'}
     
@@ -94,7 +95,7 @@ class TekScopeTab(VISATab):
         # Set the capabilities of this device
         self.supports_remote_value_check(False)
         self.supports_smart_programming(True) 
-        self.statemachine_timeout_add(10000, self.status_monitor)        
+        self.statemachine_timeout_add(5000, self.status_monitor)        
        
 @BLACS_worker
 class TekScopeWorker(VISAWorker):   
@@ -172,4 +173,26 @@ class TekScopeWorker(VISAWorker):
             
             
         return True
+        
+    def check_status(self):
+        # Tek scopes don't say anything useful in the stb, using the event register instead
+        results = {}
+        esr = int(self.connection.query('*ESR?'))
+
+        #get the events and convert to binary, and take off the '0b' header:
+        status = bin(esr)[2:]
+        # if the event is less than 8 bits long, pad the start with zeros!
+        while len(status)<8:
+            status = '0'+status
+        # reverse the status string so bit 0 is first indexed
+        status = status[::-1]
+        # fill the status byte dictionary
+        for i in range(0,8):
+            results['bit '+str(i)] = bool(int(status[i]))
+        # if esr is non-zero, read out the error message and report
+        if esr != 0:
+            errors = self.connection.query('ALLEV?')
+            raise LabscriptError('Tek Scope VISA device %s has Errors in Queue: %s'%(self.VISA_name,errors))
+            
+        return results
 
