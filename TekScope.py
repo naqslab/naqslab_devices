@@ -99,10 +99,10 @@ class TekScopeTab(VISATab):
 @BLACS_worker
 class TekScopeWorker(VISAWorker):   
     # define instrument specific read and write strings
-    setup_string = ':HEADER OFF;*ESE 60;*SRE 32;*CLS;:DAT:ENC RPB;WID 2;'
+    setup_string = ':HEADER OFF;*ESE 60;*SRE 32;*CLS;:DAT:ENC RIB;WID 2;'
     read_y_parameters_string = ':DAT:SOU CH%d;:WFMPRE:YZE?;YMU?;YOFF?'
-    read_waveform_string = 'CURV?'
     read_x_parameters_string = ':WFMPRE:XZE?;XIN?'
+    read_waveform_string = 'CURV?'
     
     # define result parser
     def waveform_parser(self,raw_waveform_array,y0,dy,yoffset):
@@ -143,14 +143,14 @@ class TekScopeWorker(VISAWorker):
                 channel_num = int(connection.split(' ')[-1])
                 [y0,dy,yoffset] = self.connection.query_ascii_values(self.read_y_parameters_string % channel_num, container=np.array, separator=';')
                 raw_data = self.connection.query_binary_values(self.read_waveform_string,
-                datatype='H', is_big_endian=True, container=np.array)
+                datatype='h', is_big_endian=True, container=np.array)
                 data[connection] = self.waveform_parser(raw_data,y0,dy,yoffset)
             # Need to calculate the time array
             num_points = len(raw_data)
             # read out the time parameters once outside the loop to save time
             [t0, dt] = self.connection.query_ascii_values(self.read_x_parameters_string,
                 container=np.array, separator=';')
-            data['time'] = np.arange(0,num_points,1,dtype=np.float64)*dt - t0
+            data['time'] = np.arange(0,num_points,1,dtype=np.float64)*dt + t0
             # define the dtypes for the h5 arrays
             dtypes = [('t', np.float64),('values', np.float32)]          
             
