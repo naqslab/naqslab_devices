@@ -32,10 +32,13 @@ class TekScope(TriggerableDevice):
     allowed_children = [ScopeChannel]
     trigger_duration = 1e-3
     
-    @set_passed_properties()
+    @set_passed_properties(property_names = {
+        "device_properties":["VISA_name"]}
+        )
     def __init__(self, name,VISA_name, trigger_device, trigger_connection, **kwargs):
         '''VISA_name can be full VISA connection string or NI-MAX alias.
         Trigger Device should be fast clocked device. '''
+        self.VISA_name = VISA_name
         self.BLACS_connection = VISA_name
         TriggerableDevice.__init__(self,name,trigger_device,trigger_connection,**kwargs)
         

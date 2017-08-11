@@ -15,10 +15,13 @@ class VISA(Device):
     description = 'VISA Compatible Instrument'
     allowed_children = []
     
-    @set_passed_properties()
+    @set_passed_properties(property_names = {
+        "device_properties":["VISA_name"]}
+        )
     def __init__(self, name, parent_device, VISA_name, **kwargs):
         '''VISA_name can be full VISA connection string or NI-MAX alias.
         Trigger Device should be fast clocked device. '''
+        self.VISA_name = VISA_name
         self.BLACS_connection = VISA_name
         Device.__init__(self, name, parent_device, VISA_name)
         
