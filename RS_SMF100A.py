@@ -66,10 +66,10 @@ class RS_SMF100AWorker(SignalGeneratorWorker):
         
     def check_status(self):
         # call parent method to read status byte register
-        status = SignalGeneratorWorker.check_status(self)
+        results = SignalGeneratorWorker.check_status(self)
         # do some device specific error handling with status byte information
-        if status['bit 2'] == True:
+        if results['bit 2'] == True:
             errors = self.connection.query('SYST:ERR:ALL?')
             raise LabscriptError('SMF100A VISA device %s has Errors in Queue: %s'%(self.VISA_name,errors))
             
-        return status
+        return results
