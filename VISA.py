@@ -57,6 +57,7 @@ class VISATab(DeviceTab):
                           'bit 2':'bit 2 label',
                           'bit 1':'bit 1 label',
                           'bit 0':'bit 0 label'}
+    status_widget = 'STBstatus.ui'
     
     def __init__(self,*args,**kwargs):
         '''You MUST override this class in order to define the device worker for any child devices.
@@ -68,7 +69,7 @@ class VISATab(DeviceTab):
     def initialise_GUI(self):
         '''Loads the standard STBstatus.ui widget and sets the worker defined in __init__'''
         # load the status_ui for the STB register
-        self.status_ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),'STBstatus.ui'))
+        self.status_ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),self.status_widget))
         self.get_tab_layout().addWidget(self.status_ui)
                    
         # generate the dictionaries
