@@ -190,6 +190,9 @@ class SignalGeneratorWorker(VISAWorker):
         global h5py; import labscript_utils.h5_lock, h5py
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
+        
+        # initialize the smart cache
+        self.smart_cache = {'STATIC_DATA': None}
     
     def check_remote_values(self):
         # Get the currently output values:
@@ -224,6 +227,7 @@ class SignalGeneratorWorker(VISAWorker):
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
         # call parent method to do basic preamble
         VISAWorker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
+        data = None
         # Program static values
         with h5py.File(h5file) as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
@@ -231,17 +235,25 @@ class SignalGeneratorWorker(VISAWorker):
             if 'STATIC_DATA' in group:
                 data = group['STATIC_DATA'][:][0]
                 
-        self.connection.write(self.freq_write_string%(data['freq0']))
-       
-        self.connection.write(self.amp_write_string%(data['amp0']))
-        
-        
-        # Save these values into final_values so the GUI can
-        # be updated at the end of the run to reflect them:
-        final_values = {'channel 0':{}}
-        
-        final_values['channel 0']['freq'] = data['freq0']/self.scale_factor
-        final_values['channel 0']['amp'] = data['amp0']/self.amp_scale_factor
+        if data is not None:
+            if fresh or data != self.smart_cache['STATIC_DATA']:
+                
+                # program freq and amplitude
+                self.connection.write(self.freq_write_string%(data['freq0']))
+                self.connection.write(self.amp_write_string%(data['amp0']))
+                
+                # update smart_cache
+                self.smart_cache['STATIC_DATA'] = data
+
+                # Save these values into final_values so the GUI can
+                # be updated at the end of the run to reflect them:
+                final_values = {'channel 0':{}}
+                
+                final_values['channel 0']['freq'] = data['freq0']/self.scale_factor
+                final_values['channel 0']['amp'] = data['amp0']/self.amp_scale_factor
+                
+            else:
+                final_values = self.initial_values
                 
         return final_values
 
