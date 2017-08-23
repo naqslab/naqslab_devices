@@ -222,6 +222,9 @@ class SignalGeneratorWorker(VISAWorker):
         acommand = self.amp_write_string%(amp*self.amp_scale_factor)
         self.connection.write(acommand)
         
+        # invalidate smart_cache after manual update
+        self.smart_cache['STATIC_DATA'] = None
+        
         return self.check_remote_values()        
 
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
