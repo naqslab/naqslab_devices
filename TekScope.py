@@ -195,7 +195,7 @@ class TekScopeWorker(VISAWorker):
         # if esr is non-zero, read out the error message and report
         if esr != 0:
             errors = self.connection.query('ALLEV?')
-            raise LabscriptError('Tek Scope VISA device %s has Errors in Queue: %s'%(self.VISA_name,errors))
+            raise LabscriptError('Tek Scope VISA device %s has Errors in Queue: \n%s'%(self.VISA_name,errors))
             
         return results
 

@@ -213,7 +213,7 @@ class SignalGeneratorWorker(VISAWorker):
     def program_manual(self,front_panel_values):
         freq = front_panel_values['channel 0']['freq']
         amp = front_panel_values['channel 0']['amp']
-        # NOTE: HP Sig. Gen. can have long switching times (>100ms)
+
         #program with scale factor
         fcommand = self.freq_write_string%(freq*self.scale_factor)
         self.connection.write(fcommand)
