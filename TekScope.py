@@ -125,7 +125,7 @@ class TekScopeWorker(VISAWorker):
         ident_string = self.connection.query('*IDN?')
         if ('TEKTRONIX,TDS 2' in ident_string) or ('TEKTRONIX,TDS 1' in ident_string):
             # Scope supported!
-            return
+            pass
         else:
             raise LabscriptError('Device %s with VISA name %s not supported!' % (ident_string,self.VISA_name))  
         
