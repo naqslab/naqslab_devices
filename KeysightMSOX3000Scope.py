@@ -303,7 +303,6 @@ class KeysightMSOX3000Worker(VISAWorker):
             if len(counters):
                 for connection,typ,pol in counters:
                     chan_num = int(connection.split(' ')[-1])
-                    print(self.read_counter_string.format(pol,typ,chan_num))
                     count_data[connection] = float(self.connection.query(self.read_counter_string.format(pol,typ,chan_num)))                     
                     
             # Note: time span same, num pts differs between analog & digital traces
