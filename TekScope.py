@@ -5,6 +5,11 @@
 #                                                                   #
 #####################################################################
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import numpy as np
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 from labscript_devices.VISA import VISATab, VISAWorker
@@ -21,7 +26,7 @@ class ScopeChannel(AnalogIn):
         
     def acquire(self):
         if self.acquisitions:
-            raise LabscriptError('Scope Channel %s:%s can only have one acquisition!' % (self.parent_device.name,self.name))
+            raise LabscriptError('Scope Channel {0:s}:{1:s} can only have one acquisition!'.format(self.parent_device.name,self.name))
         else:
             self.acquisitions.append({'label': self.name})
       
@@ -53,7 +58,7 @@ class TekScope(TriggerableDevice):
         for channel in self.child_devices:
             if channel.acquisitions:
                 acquisitions.append((channel.connection,channel.acquisitions[0]['label']))
-        acquisition_table_dtypes = [('connection','a256'),('label','a256')]
+        acquisition_table_dtypes = np.dtype({'names':['connection','label'],'formats':['a256','a256']})
         acquisition_table = np.empty(len(self.child_devices),dtype=acquisition_table_dtypes)
         for i, acq in enumerate(acquisitions):
             acquisition_table[i] = acq   
@@ -68,7 +73,7 @@ class TekScope(TriggerableDevice):
     def acquire(self,start_time):
         '''Call to define time when trigger will happen for scope.'''
         if not self.child_devices:
-            raise LabscriptError('No channels acquiring for trigger %s'%self.name)
+            raise LabscriptError('No channels acquiring for trigger {0:s}'.format(self.name))
         else:
             self.parent_device.trigger(start_time,self.trigger_duration)
             self.trigger_time = start_time
@@ -127,7 +132,7 @@ class TekScopeWorker(VISAWorker):
             # Scope supported!
             pass
         else:
-            raise LabscriptError('Device %s with VISA name %s not supported!' % (ident_string,self.VISA_name))  
+            raise LabscriptError('Device {0:s} with VISA name {1:s} not supported!'.format(ident_string,self.VISA_name))  
         
         # initialization stuff
         self.connection.write(self.setup_string)
@@ -157,7 +162,7 @@ class TekScopeWorker(VISAWorker):
                 container=np.array, separator=';')
             data['time'] = np.arange(0,num_points,1,dtype=np.float64)*dt + t0
             # define the dtypes for the h5 arrays
-            dtypes = [('t', np.float64),('values', np.float32)]          
+            dtypes = np.dtype({'names':['t','values'],'formats':[np.float64,np.float32]})         
             
             # re-open lock on h5file to save data
             with h5py.File(self.h5_file,'a') as hdf5_file:
@@ -196,7 +201,7 @@ class TekScopeWorker(VISAWorker):
         # if esr is non-zero, read out the error message and report
         if esr != 0:
             errors = self.connection.query('ALLEV?')
-            raise LabscriptError('Tek Scope VISA device %s has Errors in Queue: \n%s'%(self.VISA_name,errors))
+            raise LabscriptError('Tek Scope VISA device {0:s} has Errors in Queue: \n{1:s}'.format(self.VISA_name,errors))
             
         return results
 

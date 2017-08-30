@@ -5,6 +5,11 @@
 #                                                                   #
 #####################################################################
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 
 from labscript import Device, LabscriptError, set_passed_properties
@@ -28,7 +33,7 @@ class VISA(Device):
     def generate_code(self, hdf5_file):
         # over-ride this method for child classes
         # it should not return anything
-        raise LabscriptError('generate_code() must be overridden for %s'%self.name)
+        raise LabscriptError('generate_code() must be overridden for {0:s}'.format(self.name))
         
         
 from blacs.tab_base_classes import Worker, define_state
@@ -63,7 +68,7 @@ class VISATab(DeviceTab):
         '''You MUST override this class in order to define the device worker for any child devices.
         You then call this parent method to finish initialization.'''
         if not hasattr(self,'device_worker_class'):
-            raise LabscriptError('BLACS worker not set for device: %s'% self)
+            raise LabscriptError('BLACS worker not set for device: {0:s}'.format(self))
         DeviceTab.__init__(self,*args,**kwargs)
     
     def initialise_GUI(self):
@@ -79,8 +84,8 @@ class VISATab(DeviceTab):
         self.status = {}
         for bit in self.status_bits:
             self.status[bit] = False
-            self.bit_values_widgets[bit] = getattr(self.status_ui, 'status_%s'%bit.split()[1])
-            self.bit_labels_widgets[bit] = getattr(self.status_ui, 'status_label_%s'%bit.split()[1])
+            self.bit_values_widgets[bit] = getattr(self.status_ui, 'status_{0:s}'.format(bit.split()[1]))
+            self.bit_labels_widgets[bit] = getattr(self.status_ui, 'status_label_{0:s}'.format(bit.split()[1]))
         
         # Dynamically update status bits with correct names           
         for key in self.status_bits:

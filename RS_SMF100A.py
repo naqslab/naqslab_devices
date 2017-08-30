@@ -5,6 +5,11 @@
 #                                                                   #
 #####################################################################
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from labscript_devices.SignalGenerator import *
 from labscript import LabscriptError
 import labscript_utils.properties
@@ -50,14 +55,14 @@ class RS_SMF100AWorker(SignalGeneratorWorker):
     amp_scale_factor = 1.0
     
     # define instrument specific read and write strings for Freq & Amp control
-    freq_write_string = 'FREQ:CW %dHZ'
+    freq_write_string = 'FREQ:CW {:.0f}HZ'
     freq_query_string = 'FREQ?' #SMF100A returns 'ddddddddddd', in Hz
     def freq_parser(self,freq_string):
         '''Frequency Query string parser for SMF100A
         freq_string format is ddddddddddd
         Returns float in instrument units, Hz (i.e. needs scaling to base_units)'''
         return float(freq_string)
-    amp_write_string = 'POW:POW %.2fdBm' #SMF100A accepts two decimals, in dBm
+    amp_write_string = 'POW:POW {:.2f}dBm' #SMF100A accepts two decimals, in dBm
     amp_query_string = 'POW?' #SMF100A returns 'sdd.dd'
     def amp_parser(self,amp_string):
         '''Amplitude Query string parser for SMF100A
@@ -70,6 +75,6 @@ class RS_SMF100AWorker(SignalGeneratorWorker):
         # do some device specific error handling with status byte information
         if results['bit 2'] == True:
             errors = self.connection.query('SYST:ERR:ALL?')
-            raise LabscriptError('SMF100A VISA device %s has Errors in Queue: \n%s'%(self.VISA_name,errors))
+            raise LabscriptError('SMF100A VISA device {:s} has Errors in Queue: \n{:s}'.format(self.VISA_name,errors))
             
         return results

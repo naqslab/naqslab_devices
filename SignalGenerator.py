@@ -5,6 +5,11 @@
 #                                                                   #
 #####################################################################
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import numpy as np
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 from labscript_devices.VISA import VISA, VISATab, VISAWorker
@@ -31,12 +36,12 @@ class StaticFreqAmp(StaticDDS):
     def enable(self):       
         """overridden from StaticDDS so as not to provide time resolution -
         output can be enabled or disabled only at the start of the shot"""
-        raise LabscriptError('StaticFreqAmp %s does not support a digital gate'%(self.name))
+        raise LabscriptError('StaticFreqAmp {:s} does not support a digital gate'.format(self.name))
                             
     def disable(self):
         """overridden from StaticDDS so as not to provide time resolution -
         output can be enabled or disabled only at the start of the shot"""
-        raise LabscriptError('StaticFreqAmp %s does not support a digital gate'%(self.name))
+        raise LabscriptError('StaticFreqAmp {:s} does not support a digital gate'.format(self.name))
         
 @labscript_device              
 class SignalGenerator(VISA):
@@ -61,8 +66,8 @@ class SignalGenerator(VISA):
         
         # Ensure that frequencies are within bounds:
         if any(data < self.freq_limits[0] )  or any(data > self.freq_limits[1] ):
-            raise LabscriptError('%s %s '%(device.description, device.name) +
-                                'can only have frequencies between %EHz and %EHz, '%self.freq_limits)
+            raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
+                                'can only have frequencies between {:E}Hz and {:E}Hz'.format(self.freq_limits))
         return data, self.scale_factor
         
     def quantise_amp(self,data, device):
@@ -71,8 +76,8 @@ class SignalGenerator(VISA):
 
         # Ensure that amplitudes are within bounds:        
         if any(data < self.amp_limits[0] )  or any(data > self.amp_limits[1] ):
-            raise LabscriptError('%s %s '%(device.description, device.name) +
-                              'can only have amplitudes between %.1fdBm and %.1fdBm, '%self.amp_limits)
+            raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
+                              'can only have amplitudes between {:.1f}dBm and {:.1f}dBm'.format(self.amp_limits))
         return data, self.amp_scale_factor
     
     def generate_code(self, hdf5_file):
@@ -81,10 +86,10 @@ class SignalGenerator(VISA):
                 prefix, channel = output.connection.split()
                 channel = int(channel)
             except:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{!s}\'. '.format(output.description,output.name,output.connection) + 
                                      'Format must be \'channel n\' with n equal 0.')
             if channel != 0:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{!s}\'. '.format(output.description,output.name,output.connection) + 
                                      'Format must be \'channel n\' with n equal 0.')
             dds = output
         # Call these functions to finalise stuff:
@@ -98,8 +103,7 @@ class SignalGenerator(VISA):
         
         dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
         dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
-        static_dtypes = [('freq0', np.uint64)] + \
-                        [('amp0', np.float16)]
+        static_dtypes = np.dtype({'names':['freq0','amp0'],'formats':[np.uint64,np.float16]})
         static_table = np.zeros(1, dtype=static_dtypes)   
         static_table['freq0'].fill(1)
         static_table['freq0'] = dds.frequency.raw_output[0]
@@ -215,11 +219,11 @@ class SignalGeneratorWorker(VISAWorker):
         amp = front_panel_values['channel 0']['amp']
 
         #program with scale factor
-        fcommand = self.freq_write_string%(freq*self.scale_factor)
+        fcommand = self.freq_write_string.format(freq*self.scale_factor)
         self.connection.write(fcommand)
         
         #program with scale factor
-        acommand = self.amp_write_string%(amp*self.amp_scale_factor)
+        acommand = self.amp_write_string.format(amp*self.amp_scale_factor)
         self.connection.write(acommand)
         
         # invalidate smart_cache after manual update
@@ -242,8 +246,8 @@ class SignalGeneratorWorker(VISAWorker):
             if fresh or data != self.smart_cache['STATIC_DATA']:
                 
                 # program freq and amplitude
-                self.connection.write(self.freq_write_string%(data['freq0']))
-                self.connection.write(self.amp_write_string%(data['amp0']))
+                self.connection.write(self.freq_write_string.format(data['freq0']))
+                self.connection.write(self.amp_write_string.format(data['amp0']))
                 
                 # update smart_cache
                 self.smart_cache['STATIC_DATA'] = data

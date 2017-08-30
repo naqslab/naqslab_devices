@@ -5,6 +5,11 @@
 #                                                                   #
 #####################################################################
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from labscript_devices.SignalGenerator import *
 import labscript_utils.properties
 from labscript import LabscriptError
@@ -50,14 +55,14 @@ class HP_8642AWorker(SignalGeneratorWorker):
     amp_scale_factor = 1.0
     
     # define instrument specific read and write strings for Freq & Amp control
-    freq_write_string = 'FR %d HZ'  #HP8642A can only accept 10 digits, in Hz
+    freq_write_string = 'FR {:.0f} HZ'  #HP8642A can only accept 10 digits, in Hz
     freq_query_string = 'FROA' #HP8642A returns 'FR sdddddddddd.0 HZ', in Hz
     def freq_parser(self,freq_string):
         '''Frequency Query string parser for HP8642A
         freq_string format is FR sdddddddddd.0 HZ
         Returns float in instrument units, Hz (i.e. needs scaling to base_units)'''
         return float(freq_string.split()[1])
-    amp_write_string = 'AP %.1f DM' #HP8642A accepts one decimal, in dBm
+    amp_write_string = 'AP {:.1f} DM' #HP8642A accepts one decimal, in dBm
     amp_query_string = 'APOA' #HP8642A returns 'AP sddd.d DM'
     def amp_parser(self,amp_string):
         '''Amplitude Query string parser for HP8642A
@@ -68,9 +73,9 @@ class HP_8642AWorker(SignalGeneratorWorker):
         # -202: reverse power is tripped
         amp = float(amp_string.split()[1])
         if amp == -201:
-            raise LabscriptError('RF is off! HP8642A-VISA device: %s!'%self.VISA_name)
+            raise LabscriptError('RF is off! HP8642A-VISA device: {:s}!'.format(self.VISA_name))
         elif amp <= -200:
-            raise LabscriptError('HP8642A error code %d for VISA device: %s'%(amp,self.VISA_name))
+            raise LabscriptError('HP8642A error code {:d} for VISA device: {:s}'.format(amp,self.VISA_name))
         else:
             # No error on amp read
             return amp
