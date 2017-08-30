@@ -19,12 +19,11 @@ class ScopeChannel(AnalogIn):
         Device.__init__(self,name,parent_device,connection)
         self.acquisitions = []
         
-    def acquire(self,label,start_time):
+    def acquire(self):
         if self.acquisitions:
             raise LabscriptError('Scope Channel %s:%s can only have one acquisition!' % (self.parent_device.name,self.name))
         else:
-            self.acquisitions.append({'start_time': start_time,
-                                    'label': label})
+            self.acquisitions.append({'label': self.name})
       
 @labscript_device              
 class TekScope(TriggerableDevice):
@@ -42,6 +41,9 @@ class TekScope(TriggerableDevice):
         self.BLACS_connection = VISA_name
         TriggerableDevice.__init__(self,name,trigger_device,trigger_connection,**kwargs)
         
+        # initialize start_time variable
+        self.trigger_time = None
+        
         
     def generate_code(self, hdf5_file):
             
@@ -50,10 +52,8 @@ class TekScope(TriggerableDevice):
         acquisitions = []
         for channel in self.child_devices:
             if channel.acquisitions:
-                acquisitions.append((channel.connection,channel.acquisitions[0]['label'],
-                channel.acquisitions[0]['start_time']))
-        acquisition_table_dtypes = [('connection','a256'),('label','a256'),
-                                        ('start_time',float)]
+                acquisitions.append((channel.connection,channel.acquisitions[0]['label']))
+        acquisition_table_dtypes = [('connection','a256'),('label','a256')]
         acquisition_table = np.empty(len(self.child_devices),dtype=acquisition_table_dtypes)
         for i, acq in enumerate(acquisitions):
             acquisition_table[i] = acq   
@@ -63,6 +63,7 @@ class TekScope(TriggerableDevice):
         if len(acquisition_table):
             grp.create_dataset('ACQUISITIONS',compression=config.compression,
                                 data=acquisition_table)
+            grp['ACQUISITIONS'].attrs['trigger_time'] = self.trigger_time
                                 
     def acquire(self,start_time):
         '''Call to define time when trigger will happen for scope.'''
@@ -70,8 +71,7 @@ class TekScope(TriggerableDevice):
             raise LabscriptError('No channels acquiring for trigger %s'%self.name)
         else:
             self.parent_device.trigger(start_time,self.trigger_duration)
-            for channel in self.child_devices:
-                channel.acquire(channel.name,start_time)
+            self.trigger_time = start_time
 
 @BLACS_tab
 class TekScopeTab(VISATab):
@@ -138,12 +138,13 @@ class TekScopeWorker(VISAWorker):
                 try:
                     # get acquisitions table values so we can close the file
                     acquisitions = hdf5_file['/devices/'+self.device_name+'/ACQUISITIONS'].value
+                    trigger_time = hdf5_file['/devices/'+self.device_name+'/ACQUISITIONS'].attrs['trigger_time']
                 except:
                     # No acquisitions!
-                    return
+                    return True
             # close lock on h5 to read from scope, it takes a while            
             data = {}
-            for connection,label,start_time in acquisitions:
+            for connection,label in acquisitions:
                 channel_num = int(connection.split(' ')[-1])
                 [y0,dy,yoffset] = self.connection.query_ascii_values(self.read_y_parameters_string % channel_num, container=np.array, separator=';')
                 raw_data = self.connection.query_binary_values(self.read_waveform_string,
@@ -166,13 +167,13 @@ class TekScopeWorker(VISAWorker):
                     # Group doesn't exist yet, create it
                     measurements = hdf5_file.create_group('/data/traces')
                 # write out the data to the h5file
-                for connection,label,start_time in acquisitions:
+                for connection,label in acquisitions:
                     values = np.empty(num_points,dtype=dtypes)
                     values['t'] = data['time']
                     values['values'] = data[connection]
                     measurements.create_dataset(label, data=values)
                     # and save some timing info for reference to labscript time
-                    measurements[label].attrs['start_time'] = start_time
+                    measurements[label].attrs['trigger_time'] = trigger_time
             
             
         return True
