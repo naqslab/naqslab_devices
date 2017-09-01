@@ -265,6 +265,8 @@ class KeysightMSOX3000Worker(VISAWorker):
                     if Apts*2+11 >= 400000:
                         self.connection.chunk_size = default_chunk
                     data[connection] = self.analog_waveform_parser(raw_data,yor,yinc,yref)
+                # create the time array
+                data['Analog Time'] = np.arange(Axref,Axref+Apts,1,dtype=np.float64)*Axinc + Axor
            
             # read pod 1 channels if necessary     
             if len(pod1_acquisitions):
@@ -298,16 +300,18 @@ class KeysightMSOX3000Worker(VISAWorker):
                     channel_num = int(connection.split(' ')[-1])
                     data[connection] = conv_data[:,(15-channel_num)%8]
                     
+            if (len(pod1_acquitisions) + len(pod2_acquisitions)):
+                # create the digital time array if needed
+                # Note that digital traces always have fewer pts than analog
+                data['Digital Time'] = np.arange(Dxref,Dxref+Dpts,1,dtype=np.float64)*Dxinc + Dxor
+                    
             # read counters if necesary
             count_data = {}
             if len(counters):
                 for connection,typ,pol in counters:
                     chan_num = int(connection.split(' ')[-1])
                     count_data[connection] = float(self.connection.query(self.read_counter_string.format(pol,typ,chan_num)))                     
-                    
-            # Note: time span same, num pts differs between analog & digital traces
-            data['Analog Time'] = np.arange(Axref,Axref+Apts,1,dtype=np.float64)*Axinc + Axor
-            data['Digital Time'] = np.arange(Dxref,Dxref+Dpts,1,dtype=np.float64)*Dxinc + Dxor
+            
             # define the dtypes for the h5 arrays
             dtypes_analog = np.dtype({'names':['t','values'],'formats':[np.float64,np.float32]})  
             dtypes_digital = np.dtype({'names':['t','values'],'formats':[np.float64,np.uint8]})      
