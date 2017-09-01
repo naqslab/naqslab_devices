@@ -305,7 +305,7 @@ class KeysightMSOX3000Worker(VISAWorker):
                     channel_num = int(connection.split(' ')[-1])
                     data[connection] = conv_data[:,(15-channel_num)%8]
                     
-            if (len(pod1_acquitisions) + len(pod2_acquisitions)):
+            if len(pod1_acquisitions) or len(pod2_acquisitions):
                 # create the digital time array if needed
                 # Note that digital traces always have fewer pts than analog
                 data['Digital Time'] = np.arange(Dxref,Dxref+Dpts,1,dtype=np.float64)*Dxinc + Dxor
