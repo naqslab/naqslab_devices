@@ -210,6 +210,11 @@ class KeysightMSOX3000Worker(VISAWorker):
                     self.connection.write(':MEAS:{0:s}{1:s} CHAN{2:d}'.format(pol,typ,chan_num))
                     
                     self.smart_cache['COUNTERS'] = data
+                    
+            # put scope into single mode
+            # necessary since :WAV:DATA? clears data and wait for fresh data
+            # when in continuous run mode
+            self.connection.write(':DIG')
         
         return self.final_values        
             
