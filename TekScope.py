@@ -59,7 +59,7 @@ class TekScope(TriggerableDevice):
             if channel.acquisitions:
                 acquisitions.append((channel.connection,channel.acquisitions[0]['label']))
         acquisition_table_dtypes = np.dtype({'names':['connection','label'],'formats':['a256','a256']})
-        acquisition_table = np.empty(len(self.child_devices),dtype=acquisition_table_dtypes)
+        acquisition_table = np.empty(len(acquisitions),dtype=acquisition_table_dtypes)
         for i, acq in enumerate(acquisitions):
             acquisition_table[i] = acq   
         
