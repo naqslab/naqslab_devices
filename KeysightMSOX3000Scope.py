@@ -191,10 +191,13 @@ class KeysightMSOX3000Worker(VISAWorker):
         
         data = None
         refresh = False
+        send_trigger = False
         with h5py.File(h5file) as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             if 'COUNTERS' in group:
                 data = group['COUNTERS'][:]
+            if len(group):
+                send_trigger = True
 
         if data is not None:
             #check if refresh needed
@@ -210,7 +213,8 @@ class KeysightMSOX3000Worker(VISAWorker):
                     self.connection.write(':MEAS:{0:s}{1:s} CHAN{2:d}'.format(pol,typ,chan_num))
                     
                     self.smart_cache['COUNTERS'] = data
-                    
+        
+        if send_trigger:            
             # put scope into single mode
             # necessary since :WAV:DATA? clears data and wait for fresh data
             # when in continuous run mode
