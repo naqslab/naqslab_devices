@@ -245,9 +245,11 @@ class SignalGeneratorWorker(VISAWorker):
         if data is not None:
             if fresh or data != self.smart_cache['STATIC_DATA']:
                 
-                # program freq and amplitude
-                self.connection.write(self.freq_write_string.format(data['freq0']))
-                self.connection.write(self.amp_write_string.format(data['amp0']))
+                # program freq and amplitude as necessary
+                if data['freq0'] != self.smart_cache['STATIC_DATA']['freq0']:
+                    self.connection.write(self.freq_write_string.format(data['freq0']))
+                if data['amp0'] != self.smart_cache['STATIC_DATA']['amp0']:
+                    self.connection.write(self.amp_write_string.format(data['amp0']))
                 
                 # update smart_cache
                 self.smart_cache['STATIC_DATA'] = data
