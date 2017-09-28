@@ -138,12 +138,11 @@ class VISAWorker(Worker):
         # over-ride this method if remote value check is supported
         return None
     
-    def check_status(self):
+    def convert_register(self,register):
+        '''Converts register value to dict of bools'''
         results = {}
-        stb = self.connection.read_stb()
-
         #get the status and convert to binary, and take off the '0b' header:
-        status = bin(stb)[2:]
+        status = bin(register)[2:]
         # if the status is less than 8 bits long, pad the start with zeros!
         while len(status)<8:
             status = '0'+status
@@ -154,6 +153,14 @@ class VISAWorker(Worker):
             results['bit '+str(i)] = bool(int(status[i]))
         
         return results
+    
+    def check_status(self):
+        '''Reads the Status Byte Register of the VISA device.
+        Returns dictionary of bit values.'''
+        results = {}
+        stb = self.connection.read_stb()
+        
+        return self.convert_register(stb)
     
     def program_manual(self,front_panel_values):
         # over-ride this method if remote programming supported

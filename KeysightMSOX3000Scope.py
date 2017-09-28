@@ -369,20 +369,9 @@ class KeysightMSOX3000Worker(VISAWorker):
         return True
         
     def check_status(self):
-        # Tek scopes don't say anything useful in the stb, using the event register instead
-        results = {}
+        # Scope don't say anything useful in the stb, using the event register instead
         esr = int(self.connection.query('*ESR?'))
 
-        #get the events and convert to binary, and take off the '0b' header:
-        status = bin(esr)[2:]
-        # if the event is less than 8 bits long, pad the start with zeros!
-        while len(status)<8:
-            status = '0'+status
-        # reverse the status string so bit 0 is first indexed
-        status = status[::-1]
-        # fill the status byte dictionary
-        for i in range(0,8):
-            results['bit '+str(i)] = bool(int(status[i]))
         # if esr is non-zero, read out the error message and report
         if (esr & self.esr_mask) != 0:
             # read out errors from queue until response == 0
@@ -395,5 +384,5 @@ class KeysightMSOX3000Worker(VISAWorker):
                     break
                 
             raise LabscriptError('Keysight Scope VISA device {0:s} has Errors in Queue: \n{1:s}'.format(self.VISA_name,err_string)) 
-        return results
+        return self.convert_register(esr)
 
