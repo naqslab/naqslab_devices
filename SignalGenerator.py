@@ -196,7 +196,7 @@ class SignalGeneratorWorker(VISAWorker):
         VISAWorker.init(self)
         
         # initialize the smart cache
-        self.smart_cache = {'STATIC_DATA': None}
+        self.smart_cache = {'STATIC_DATA': {'freq0':None,'amp0':None}}
     
     def check_remote_values(self):
         # Get the currently output values:
@@ -227,7 +227,7 @@ class SignalGeneratorWorker(VISAWorker):
         self.connection.write(acommand)
         
         # invalidate smart_cache after manual update
-        self.smart_cache['STATIC_DATA'] = None
+        self.smart_cache['STATIC_DATA'] = {'freq0':None,'amp0':None}
         
         return self.check_remote_values()        
 
