@@ -60,7 +60,7 @@ class NovaTechDDS409B_AC(IntermediateDevice):
         if not isinstance(data, np.ndarray):
             data = np.array(data)
         # Ensure that frequencies are within bounds:
-        if np.any(data > 171e6 )  or np.any(data < 0.1 ):
+        if np.any(data > 171.1276031e6 )  or np.any(data < 0.1 ):
             raise LabscriptError('%s %s '%(device.description, device.name) +
                               'can only have frequencies between 0.1Hz and 171MHz, ' + 
                               'the limit imposed by %s.'%self.name)
@@ -75,8 +75,8 @@ class NovaTechDDS409B_AC(IntermediateDevice):
         # ensure that phase wraps around:
         data %= 360
         # It's faster to add 0.5 then typecast than to round to integers first:
-        data = np.array((45.511111111111113*data)+0.5,dtype=np.uint16)
-        scale_factor = 45.511111111111113
+        scale_factor = 16384/360.0
+        data = np.array((scale_factor*data)+0.5,dtype=np.uint16)
         return data, scale_factor
         
     def quantise_amp(self,data,device):
@@ -109,28 +109,22 @@ class NovaTechDDS409B_AC(IntermediateDevice):
             DDSs[channel] = output
         for connection in DDSs:
             if connection in range(4):
-                # Dynamic DDS
                 dds = DDSs[connection]   
                 dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
                 dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.raw_output, dds)
                 dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
-            # elif connection in range(2,4):
-                # # StaticDDS:
-                # dds = DDSs[connection]   
-                # dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.static_value, dds)
-                # dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.static_value, dds)
-                # dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.static_value, dds)
             else:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 4.')
-                                
+        
         dtypes = [('freq%d'%i,np.uint32) for i in range(2)] + \
                  [('phase%d'%i,np.uint16) for i in range(2)] + \
                  [('amp%d'%i,np.uint16) for i in range(2)]
-                 
-        static_dtypes = [('freq%d'%i,np.uint32) for i in range(2,4)] + \
-                        [('phase%d'%i,np.uint16) for i in range(2,4)] + \
-                        [('amp%d'%i,np.uint16) for i in range(2,4)]
+        
+        stat_chan = set(DDSs)&set(range(2,4))          
+        static_dtypes = [('freq%d'%i,np.uint32) for i in stat_chan] + \
+                        [('phase%d'%i,np.uint16) for i in stat_chan] + \
+                        [('amp%d'%i,np.uint16) for i in stat_chan]
          
         clockline = self.parent_clock_line
         pseudoclock = clockline.parent_device
@@ -141,8 +135,6 @@ class NovaTechDDS409B_AC(IntermediateDevice):
         out_table['freq1'].fill(1)
         
         static_table = np.zeros(1, dtype=static_dtypes)
-        static_table['freq2'].fill(1)
-        static_table['freq3'].fill(1)
         
         for connection in range(2):
             if not connection in DDSs:
@@ -170,9 +162,9 @@ class NovaTechDDS409B_AC(IntermediateDevice):
         grp = self.init_device_group(hdf5_file)
         grp.create_dataset('TABLE_DATA',compression=config.compression,data=out_table) 
         grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
-        self.set_property('frequency_scale_factor', 10, location='device_properties')
-        self.set_property('amplitude_scale_factor', 1023, location='device_properties')
-        self.set_property('phase_scale_factor', 45.511111111111113, location='device_properties')
+        self.set_property('frequency_scale_factor', dds.frequency.scale_factor, location='device_properties')
+        self.set_property('amplitude_scale_factor', dds.amplitude.scale_factor, location='device_properties')
+        self.set_property('phase_scale_factor', dds.phase.scale_factor, location='device_properties')
 
 
 
@@ -184,7 +176,13 @@ from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MOD
 from blacs.device_base_class import DeviceTab
 
 @BLACS_tab
-class NovatechDDS409BacTab(DeviceTab):
+class NovaTechDDS409B_ACTab(DeviceTab):
+
+    def __init__(self,*args,**kwargs):
+        if not hasattr(self,'device_worker_class'):
+            self.device_worker_class = NovaTechDDS409B_ACWorker
+        DeviceTab.__init__(self,*args,**kwargs)
+
     def initialise_GUI(self):        
         # Capabilities
         self.base_units =    {'freq':'Hz',          'amp':'Arb',   'phase':'Degrees'}
@@ -226,7 +224,7 @@ class NovatechDDS409BacTab(DeviceTab):
         self.update_mode = connection_object.properties.get('update_mode', 'synchronous')
         
         # Create and set the primary worker
-        self.create_worker("main_worker",NovatechDDS409BacWorker,{'com_port':self.com_port,
+        self.create_worker("main_worker",self.device_worker_class,{'com_port':self.com_port,
                                                               'baud_rate': self.baud_rate,
                                                               'update_mode': self.update_mode})
         self.primary_worker = "main_worker"
@@ -235,12 +233,20 @@ class NovatechDDS409BacTab(DeviceTab):
         self.supports_remote_value_check(True)
         self.supports_smart_programming(True) 
 
+
 @BLACS_worker        
-class NovatechDDS409BacWorker(Worker):
+class NovaTechDDS409B_ACWorker(Worker):
     def init(self):
         global serial; import serial
         global h5py; import labscript_utils.h5_lock, h5py
-        self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': ''}
+        self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': '',
+                                'CURRENT_DATA':None}
+        
+        # conversion dictionaries for program_static from 
+        # program_manual                      
+        self.conv = {'freq':10**(-6),'amp':1023.0,'phase':16384.0/360.0}
+        # and from transition_to_buffered
+        self.conv_buffered = {'freq':10**(-7),'amp':1,'phase':1}
         
         self.connection = serial.Serial(self.com_port, baudrate = self.baud_rate, timeout=0.1)
         self.connection.readlines()
@@ -261,7 +267,8 @@ class NovatechDDS409BacWorker(Worker):
         if self.connection.readline() != "OK\r\n":
             raise Exception('Error: Failed to execute command: "m 0"')
         
-        #return self.get_current_values()
+        # populate the 'CURRENT_DATA' dictionary    
+        self.check_remote_values()
         
     def check_remote_values(self):
         # Get the currently output values:
@@ -280,44 +287,49 @@ class NovatechDDS409BacWorker(Worker):
             results['channel %d'%i]['amp'] = int(amp,16)/1023.0
             # Convert hex fraction of 16384 to degrees:
             results['channel %d'%i]['phase'] = int(phase,16)*360/16384.0
+            
+            self.smart_cache['CURRENT_DATA'] = results
         return results
         
     def program_manual(self,front_panel_values):
-        # TODO: Optimise this so that only items that have changed are reprogrammed by storing the last programmed values
-        # For each DDS channel,
         for i in range(4):    
             # and for each subchnl in the DDS,
-            for subchnl in ['freq','amp','phase']:     
+            for subchnl in ['freq','amp','phase']:
+                # don't program if setting is the same
+                if self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl] == front_panel_values['channel %d'%i][subchnl]:
+                    continue       
                 # Program the sub channel
-                self.program_static(i,subchnl,front_panel_values['channel %d'%i][subchnl])
+                self.program_static(i,subchnl,
+                    front_panel_values['channel %d'%i][subchnl]*self.conv[subchnl])
+                # Now that a static update has been done, 
+                # we'd better invalidate the saved STATIC_DATA for the channel:
+                self.smart_cache['STATIC_DATA'] = None
         return self.check_remote_values()
 
-    def program_static(self,channel,type,value):
+    def program_static(self,channel,type,value):            
         if type == 'freq':
-            command = 'F%d %.7f\r\n'%(channel,value/10.0**6)
+            command = 'F%d %.7f\r\n'%(channel,value)
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: %s'%command)
         elif type == 'amp':
-            command = 'V%d %u\r\n'%(channel,int(value*1023+0.5))
+            command = 'V%d %u\r\n'%(channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: %s'%command)
         elif type == 'phase':
-            command = 'P%d %u\r\n'%(channel,value*16384/360)
+            command = 'P%d %u\r\n'%(channel,value)
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: %s'%command)
         else:
             raise TypeError(type)
-        # Now that a static update has been done, we'd better invalidate the saved STATIC_DATA:
-        self.smart_cache['STATIC_DATA'] = None
      
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
+    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):        
         # Store the initial values in case we have to abort and restore them:
         self.initial_values = initial_values
-        # Store the final values to for use during transition_to_static:
-        self.final_values = {}
+        # Store the final values for use during transition_to_static:
+        self.final_values = initial_values
         static_data = None
         table_data = None
         with h5py.File(h5file) as hdf5_file:
@@ -328,35 +340,24 @@ class NovatechDDS409BacWorker(Worker):
             # Now program the buffered outputs:
             if 'TABLE_DATA' in group:
                 table_data = group['TABLE_DATA'][:]
-        
+                
         if static_data is not None:
             data = static_data
             if fresh or data != self.smart_cache['STATIC_DATA']:
-                self.logger.debug('Static data has changed, reprogramming.')
                 self.smart_cache['STATIC_DATA'] = data
-                self.connection.write('F2 %.7f\r\n'%(data['freq2']/10.0**7))
-                self.connection.readline()
-                self.connection.write('V2 %u\r\n'%(data['amp2']))
-                self.connection.readline()
-                self.connection.write('P2 %u\r\n'%(data['phase2']))
-                self.connection.readline()
-                self.connection.write('F3 %.7f\r\n'%(data['freq3']/10.0**7))
-                self.connection.readline()
-                self.connection.write('V3 %u\r\n'%data['amp3'])
-                self.connection.readline()
-                self.connection.write('P3 %u\r\n'%data['phase3'])
-                self.connection.readline()
+                                
+                # need to infer which channels to program
+                num_chan = len(data)//3
+                channels = [int(name[-1]) for name in data.dtype.names[0:num_chan]]
                 
-                # Save these values into final_values so the GUI can
-                # be updated at the end of the run to reflect them:
-                self.final_values['channel 2'] = {}
-                self.final_values['channel 3'] = {}
-                self.final_values['channel 2']['freq'] = data['freq2']/10.0
-                self.final_values['channel 3']['freq'] = data['freq3']/10.0
-                self.final_values['channel 2']['amp'] = data['amp2']/1023.0
-                self.final_values['channel 3']['amp'] = data['amp3']/1023.0
-                self.final_values['channel 2']['phase'] = data['phase2']*360/16384.0
-                self.final_values['channel 3']['phase'] = data['phase3']*360/16384.0
+                for i in channels:
+                    for subchnl in ['freq','amp','phase']:
+                        curr_value = self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl]*self.conv[subchnl]
+                        value = data[subchnl+str(i)]*self.conv_buffered[subchnl]
+                        if value == curr_value:
+                            continue
+                        self.program_static(i,subchnl,value)
+                        self.final_values['channel %d'%i][subchnl] = value/self.conv[subchnl]
                     
         # Now program the buffered outputs:
         if table_data is not None:
@@ -436,30 +437,33 @@ class NovatechDDS409BacWorker(Worker):
             DDSs = [0,1]
             
         # only program the channels that we need to
-        for ddsnumber in DDSs:
-            channel_values = values['channel %d'%ddsnumber]
+        for channel in values:
+            ddsnum = int(channel.split(' ')[-1])
+            if ddsnum not in DDSs:
+                continue
             for subchnl in ['freq','amp','phase']:            
-                self.program_static(ddsnumber,subchnl,channel_values[subchnl])
+                self.program_static(ddsnum,subchnl,values[channel][subchnl]*self.conv[subchnl])
             
         # return True to indicate we successfully transitioned back to manual mode
         return True
                      
     def shutdown(self):
-        self.connection.close()
-        
+        self.connection.close()        
         
         
 @runviewer_parser
-class RunviewerClass(object):    
+class NovaTechDDS409B_ACParser(object):    
     def __init__(self, path, device):
         self.path = path
         self.name = device.name
         self.device = device
+        self.dyn_chan = [0,1]
+        self.static_chan = [2,3]
             
     def get_traces(self, add_trace, clock=None):
         if clock is None:
             # we're the master pseudoclock, software triggered. So we don't have to worry about trigger delays, etc
-            raise Exception('No clock passed to %s. The NovaTechDDS9M must be clocked by another device.'%self.name)
+            raise Exception('No clock passed to %s. The NovaTechDDS409B_AC must be clocked by another device.'%self.name)
         
         times, clock_value = clock[0], clock[1]
         
@@ -475,13 +479,15 @@ class RunviewerClass(object):
         with h5py.File(self.path, 'r') as f:
             if 'TABLE_DATA' in f['devices/%s'%self.name]:
                 table_data = f['devices/%s/TABLE_DATA'%self.name][:]
-                for i in range(2):
+                for i in self.dyn_chan:
                     for sub_chnl in ['freq', 'amp', 'phase']:                        
                         data['channel %d_%s'%(i,sub_chnl)] = table_data['%s%d'%(sub_chnl,i)][:]
                                 
             if 'STATIC_DATA' in f['devices/%s'%self.name]:
                 static_data = f['devices/%s/STATIC_DATA'%self.name][:]
-                for i in range(2,4):
+                num_chan = len(static_data)//3
+                channels = [int(name[-1]) for name in static_data.dtype.names[0:num_chan]]
+                for i in channels:
                     for sub_chnl in ['freq', 'amp', 'phase']:                        
                         data['channel %d_%s'%(i,sub_chnl)] = np.empty((len(clock_ticks),))
                         data['channel %d_%s'%(i,sub_chnl)].fill(static_data['%s%d'%(sub_chnl,i)][0])
