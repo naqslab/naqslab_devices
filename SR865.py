@@ -107,14 +107,14 @@ from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MOD
 class SR865Tab(VISATab):
     # Capabilities
 
-    status_byte_labels = {'bit 7':'unused', 
-                          'bit 6':'SRQ',
-                          'bit 5':'ESB',
-                          'bit 4':'MAV',
-                          'bit 3':'LIA',
-                          'bit 2':'ERR',
-                          'bit 1':'unused',
-                          'bit 0':'unused'}
+    status_byte_labels = {'bit 7':'Power On', 
+                          'bit 6':'Buttron Pressed',
+                          'bit 5':'Illegal Command',
+                          'bit 4':'Execution Error',
+                          'bit 3':'Query Queue Overflow',
+                          'bit 2':'unused',
+                          'bit 1':'Input Queue Overflow',
+                          'bit 0':'OPC'}
     
     def __init__(self,*args,**kwargs):
         # set the worker
@@ -286,4 +286,15 @@ class SR865Worker(VISAWorker):
             group.attrs.create('phase',round(self.final_values['phase'],6))
                 
         return self.final_values
+        
+    def check_status(self):
+        esr = int(self.connection.query('*ESR?'))
+        mask = 122
+        error_code = esr & mask
+        
+        if error_code:
+            # error exists, but nothing to report beyond register value
+            print('{:s} has ESR = {:d}'.format(self.VISA_name,error_code))
+        
+        return self.convert_register(esr)
 
