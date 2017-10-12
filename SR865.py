@@ -107,14 +107,14 @@ from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MOD
 class SR865Tab(VISATab):
     # Capabilities
 
-    status_byte_labels = {'bit 7':'unused', 
-                          'bit 6':'SRQ',
-                          'bit 5':'ESB',
-                          'bit 4':'MAV',
-                          'bit 3':'LIA',
-                          'bit 2':'ERR',
-                          'bit 1':'unused',
-                          'bit 0':'unused'}
+    status_byte_labels = {'bit 7':'Power On', 
+                          'bit 6':'Buttron Pressed',
+                          'bit 5':'Illegal Command',
+                          'bit 4':'Execution Error',
+                          'bit 3':'Query Queue Overflow',
+                          'bit 2':'unused',
+                          'bit 1':'Input Queue Overflow',
+                          'bit 0':'OPC'}
     
     def __init__(self,*args,**kwargs):
         # set the worker
@@ -211,11 +211,7 @@ class SR865Worker(VISAWorker):
         VISAWorker.init(self)
         
         # initial configure of the instrument
-        self.connection.read_termination = u'\n'
-        self.connection.write('*CLS;')
-        
-        # initialize the smart_cache
-        self.smart_cache = {'STATIC_DATA': None}
+        self.connection.write('*ESE 122;*CLS;')
     
     def check_remote_values(self):
         # Get the current set values:
@@ -227,10 +223,6 @@ class SR865Worker(VISAWorker):
         results['tau'] = tau[int(tau_i)]
         results['sens'] = sens[int(sens_i)]
         results['phase'] = self.phase_parser(phase)
-        
-        if (self.smart_cache['STATIC_DATA'] is not None) and (results != self.smart_cache['STATIC_DATA']):
-            # remote values changed, need to reprogram on next run
-            self.smart_cache['STATIC_DATA'] = None
 
         return results
     
@@ -258,25 +250,26 @@ class SR865Worker(VISAWorker):
         # Save these values into final_values so the GUI can
         # be updated at the end of the run to reflect them:
         # assume initial values in case something isn't programmed
-        self.final_values = self.initial_values
+        self.final_values = initial_values
         
         if data is not None:
-            if fresh or data != self.smart_cache['STATIC_DATA']:                
-                if data['tau_i'] != -1:
-                    self.connection.write('OFLT {:d}'.format(data['tau_i']))
-                    self.final_values['tau'] = tau[data['tau_i']]
-                else:
-                    self.final_values['tau'] = tau[initial_values['tau_i']]
-                if data['sens_i'] != -1:
-                    self.connection.write('SCAL {:d}'.format(data['sens_i']))
-                    self.final_values['sens'] = sens[data['sens_i']]
-                else:
-                    self.final_values['sens'] = sens[initial_values['sens_i']]
-                if not np.isnan(data['phase']):
-                    self.connection.write('PHAS {:.6f}'.format(data['phase']))
-                    self.final_values['phase'] = data['phase']
-                else:
-                    self.final_values['phase'] = initial_values['phase']
+            # since static instrument, smart_cache replaced with initial vals
+            cur = self.initial_values               
+            if (data['tau_i'] != -1) and (fresh or (data['tau'] != cur['tau'])):
+                self.connection.write('OFLT {:d}'.format(data['tau_i']))
+                self.final_values['tau'] = tau[data['tau_i']]
+            else:
+                self.final_values['tau'] = initial_values['tau']
+            if (data['sens_i'] != -1) and (fresh or (data['tau'] != cur['tau'])):
+                self.connection.write('SCAL {:d}'.format(data['sens_i']))
+                self.final_values['sens'] = sens[data['sens_i']]
+            else:
+                self.final_values['sens'] = initial_values['sens']
+            if not np.isnan(data['phase']) and (fresh or (data['phase'] != cur['phase'])):
+                self.connection.write('PHAS {:.6f}'.format(data['phase']))
+                self.final_values['phase'] = data['phase']
+            else:
+                self.final_values['phase'] = initial_values['phase']
                     
         # write the final_values to h5file for later lookup
         with h5py.File(h5file) as hdf5_file:
@@ -286,4 +279,15 @@ class SR865Worker(VISAWorker):
             group.attrs.create('phase',round(self.final_values['phase'],6))
                 
         return self.final_values
+        
+    def check_status(self):
+        esr = int(self.connection.query('*ESR?'))
+        mask = 122
+        error_code = esr & mask
+        
+        if error_code:
+            # error exists, but nothing to report beyond register value
+            print('{:s} has ESR = {:d}'.format(self.VISA_name,error_code))
+        
+        return self.convert_register(esr)
 
