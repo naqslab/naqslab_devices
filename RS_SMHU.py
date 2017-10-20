@@ -4,11 +4,10 @@
 #                                                                   #
 #                                                                   #
 #####################################################################
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import division, unicode_literals, print_function, absolute_import
+from labscript_utils import PY2
+if PY2:
+    str = unicode
 
 from naqslab_devices.SignalGenerator import *
 import labscript_utils.properties

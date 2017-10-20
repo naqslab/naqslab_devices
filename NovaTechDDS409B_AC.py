@@ -1,15 +1,14 @@
 #####################################################################
 #                                                                   #
-# /NovaTechDDS409B_AC.py                                                 #
+# /NovaTechDDS409B_AC.py                                            #
 #                                                                   #
-# Copyright 2013, Monash University                                 #
-#                                                                   #
-# This file is part of the module labscript_devices, in the         #
-# labscript suite (see http://labscriptsuite.org), and is           #
-# licensed under the Simplified BSD License. See the license.txt    #
-# file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
+from __future__ import division, unicode_literals, print_function, absolute_import
+from labscript_utils import PY2
+if PY2:
+    str = unicode
+    
 from labscript_devices import runviewer_parser, labscript_device, BLACS_tab, BLACS_worker
 
 from labscript import IntermediateDevice, DDS, StaticDDS, Device, config, LabscriptError, set_passed_properties
@@ -33,7 +32,7 @@ class NovaTechDDS409B_AC(IntermediateDevice):
                  com_port = "", baud_rate=19200, update_mode='synchronous', **kwargs):
 
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
-        self.BLACS_connection = '%s,%s'%(com_port, str(baud_rate))
+        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))
         if not update_mode in ['synchronous', 'asynchronous']:
             raise LabscriptError('update_mode must be \'synchronous\' or \'asynchronous\'')            
         
@@ -61,9 +60,9 @@ class NovaTechDDS409B_AC(IntermediateDevice):
             data = np.array(data)
         # Ensure that frequencies are within bounds:
         if np.any(data > 171.1276031e6 )  or np.any(data < 0.1 ):
-            raise LabscriptError('%s %s '%(device.description, device.name) +
+            raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
                               'can only have frequencies between 0.1Hz and 171MHz, ' + 
-                              'the limit imposed by %s.'%self.name)
+                              'the limit imposed by {:s}.'.format(self.name))
         # It's faster to add 0.5 then typecast than to round to integers first:
         data = np.array((10*data)+0.5,dtype=np.uint32)
         scale_factor = 10
@@ -84,9 +83,9 @@ class NovaTechDDS409B_AC(IntermediateDevice):
             data = np.array(data)
         # ensure that amplitudes are within bounds:
         if np.any(data > 1 )  or np.any(data < 0):
-            raise LabscriptError('%s %s '%(device.description, device.name) +
+            raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
                               'can only have amplitudes between 0 and 1 (Volts peak to peak approx), ' + 
-                              'the limit imposed by %s.'%self.name)
+                              'the limit imposed by {:s}.'.format(self.name))
         # It's faster to add 0.5 then typecast than to round to integers first:
         data = np.array((1023*data)+0.5,dtype=np.uint16)
         scale_factor = 1023
@@ -97,14 +96,14 @@ class NovaTechDDS409B_AC(IntermediateDevice):
         for output in self.child_devices:
             # Check that the instructions will fit into RAM:
             if isinstance(output, DDS) and len(output.frequency.raw_output) > 16384 - 2: # -2 to include space for dummy instructions
-                raise LabscriptError('%s can only support 16383 instructions. '%self.name +
+                raise LabscriptError('{:s} can only support 16383 instructions. '.format(self.name) +
                                      'Please decrease the sample rates of devices on the same clock, ' + 
-                                     'or connect %s to a different pseudoclock.'%self.name)
+                                     'or connect {:s} to a different pseudoclock.'.format(self.name))
             try:
                 prefix, channel = output.connection.split()
                 channel = int(channel)
             except:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(output.description,output.name,str(output.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 4.')
             DDSs[channel] = output
         for connection in DDSs:
@@ -114,17 +113,24 @@ class NovaTechDDS409B_AC(IntermediateDevice):
                 dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.raw_output, dds)
                 dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
             else:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(dds.description,dds.name,str(dds.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 4.')
         
-        dtypes = [('freq%d'%i,np.uint32) for i in range(2)] + \
-                 [('phase%d'%i,np.uint16) for i in range(2)] + \
-                 [('amp%d'%i,np.uint16) for i in range(2)]
+        dyn_DDSs = range(2)         
+        dtypes = {'names':['freq{:d}'.format(i) for i in dyn_DDSs] +
+                            ['amp{:d}'.format(i) for i in dyn_DDSs] +
+                            ['phase{:d}'.format(i) for i in dyn_DDSs],
+                            'formats':[np.uint32 for i in dyn_DDSs] +
+                            [np.uint16 for i in dyn_DDSs] + 
+                            [np.uint16 for i in dyn_DDSs]} 
         
-        stat_chan = set(DDSs)&set(range(2,4))          
-        static_dtypes = [('freq%d'%i,np.uint32) for i in stat_chan] + \
-                        [('phase%d'%i,np.uint16) for i in stat_chan] + \
-                        [('amp%d'%i,np.uint16) for i in stat_chan]
+        stat_DDSs = set(DDSs)&set(range(2,4))          
+        static_dtypes = {'names':['freq{:d}'.format(i) for i in stat_DDSs] +
+                            ['amp{:d}'.format(i) for i in stat_DDSs] +
+                            ['phase{:d}'.format(i) for i in stat_DDSs],
+                            'formats':[np.uint32 for i in stat_DDSs] +
+                            [np.uint16 for i in stat_DDSs] + 
+                            [np.uint16 for i in stat_DDSs]} 
          
         clockline = self.parent_clock_line
         pseudoclock = clockline.parent_device
@@ -142,16 +148,16 @@ class NovaTechDDS409B_AC(IntermediateDevice):
             dds = DDSs[connection]
             # The last two instructions are left blank, for BLACS
             # to fill in at program time.
-            out_table['freq%d'%connection][:] = dds.frequency.raw_output
-            out_table['amp%d'%connection][:] = dds.amplitude.raw_output
-            out_table['phase%d'%connection][:] = dds.phase.raw_output
+            out_table['freq{:d}'.format(connection)][:] = dds.frequency.raw_output
+            out_table['amp{:d}'.format(connection)][:] = dds.amplitude.raw_output
+            out_table['phase{:d}'.format(connection)][:] = dds.phase.raw_output
         for connection in range(2,4):
             if not connection in DDSs:
                 continue
             dds = DDSs[connection]
-            static_table['freq%d'%connection] = dds.frequency.raw_output[0]
-            static_table['amp%d'%connection] = dds.amplitude.raw_output[0]
-            static_table['phase%d'%connection] = dds.phase.raw_output[0]
+            static_table['freq{:d}'.format(connection)] = dds.frequency.raw_output[0]
+            static_table['amp{:d}'.format(connection)] = dds.amplitude.raw_output[0]
+            static_table['phase{:d}'.format(connection)] = dds.phase.raw_output[0]
             
         if self.update_mode == 'asynchronous':
             # Duplicate the first line. Otherwise, we are one step ahead in the table
@@ -195,9 +201,9 @@ class NovaTechDDS409B_ACTab(DeviceTab):
         # Create DDS Output objects
         dds_prop = {}
         for i in range(self.num_DDS): # 4 is the number of DDS outputs on this device
-            dds_prop['channel %d'%i] = {}
+            dds_prop['channel {:d}'.format(i)] = {}
             for subchnl in ['freq', 'amp', 'phase']:
-                dds_prop['channel %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
+                dds_prop['channel {:d}'.format(i)][subchnl] = {'base_unit':self.base_units[subchnl],
                                                      'min':self.base_min[subchnl],
                                                      'max':self.base_max[subchnl],
                                                      'step':self.base_step[subchnl],
@@ -321,14 +327,14 @@ class NovaTechDDS409B_ACWorker(Worker):
             raise Exception('Failed to execute command "QUE". Cannot connect to device.')
         results = {}
         for i, line in enumerate(response[:4]):
-            results['channel %d'%i] = {}
+            results['channel {:d}'.format(i)] = {}
             freq, phase, amp, ignore, ignore, ignore, ignore = line.split()
             # Convert hex multiple of 0.1 Hz to MHz:
-            results['channel %d'%i]['freq'] = float(int(freq,16))/10.0
+            results['channel {:d}'.format(i)]['freq'] = float(int(freq,16))/10.0
             # Convert hex to int:
-            results['channel %d'%i]['amp'] = int(amp,16)/1023.0
+            results['channel {:d}'.format(i)]['amp'] = int(amp,16)/1023.0
             # Convert hex fraction of 16384 to degrees:
-            results['channel %d'%i]['phase'] = int(phase,16)*360/16384.0
+            results['channel {:d}'.format(i)]['phase'] = int(phase,16)*360/16384.0
             
             self.smart_cache['CURRENT_DATA'] = results
         return results
@@ -338,11 +344,11 @@ class NovaTechDDS409B_ACWorker(Worker):
             # and for each subchnl in the DDS,
             for subchnl in ['freq','amp','phase']:
                 # don't program if setting is the same
-                if self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl] == front_panel_values['channel %d'%i][subchnl]:
+                if self.smart_cache['CURRENT_DATA']['channel {:d}'.format(i)][subchnl] == front_panel_values['channel {:d}'.format(i)][subchnl]:
                     continue       
                 # Program the sub channel
                 self.program_static(i,subchnl,
-                    front_panel_values['channel %d'%i][subchnl]*self.conv[subchnl])
+                    front_panel_values['channel {:d}'.format(i)][subchnl]*self.conv[subchnl])
                 # Now that a static update has been done, 
                 # we'd better invalidate the saved STATIC_DATA for the channel:
                 self.smart_cache['STATIC_DATA'] = None
@@ -350,20 +356,20 @@ class NovaTechDDS409B_ACWorker(Worker):
 
     def program_static(self,channel,type,value):            
         if type == 'freq':
-            command = 'F%d %.7f\r\n'%(channel,value)
+            command = 'F{:d} {:.7f}\r\n'.format(channel,value)
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
-                raise Exception('Error: Failed to execute command: %s'%command)
+                raise Exception('Error: Failed to execute command: {:s}'.format(command))
         elif type == 'amp':
-            command = 'V%d %u\r\n'%(channel,int(value))
+            command = 'V{:d} {:u}\r\n'.format(channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
-                raise Exception('Error: Failed to execute command: %s'%command)
+                raise Exception('Error: Failed to execute command: {:s}'.format(command))
         elif type == 'phase':
-            command = 'P%d %u\r\n'%(channel,value)
+            command = 'P{:d} {:u}\r\n'.format(channel,value)
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
-                raise Exception('Error: Failed to execute command: %s'%command)
+                raise Exception('Error: Failed to execute command: {:s}'.format(command))
         else:
             raise TypeError(type)
      
@@ -394,12 +400,12 @@ class NovaTechDDS409B_ACWorker(Worker):
                 
                 for i in channels:
                     for subchnl in ['freq','amp','phase']:
-                        curr_value = self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl]*self.conv[subchnl]
+                        curr_value = self.smart_cache['CURRENT_DATA']['channel {:d}'.format(i)][subchnl]*self.conv[subchnl]
                         value = data[subchnl+str(i)]*self.conv_buffered[subchnl]
                         if value == curr_value:
                             continue
                         self.program_static(i,subchnl,value)
-                        self.final_values['channel %d'%i][subchnl] = value/self.conv[subchnl]
+                        self.final_values['channel {:d}'.format(i)][subchnl] = value/self.conv[subchnl]
                     
         # Now program the buffered outputs:
         if table_data is not None:
@@ -413,7 +419,7 @@ class NovaTechDDS409B_ACWorker(Worker):
                         self.connection.readline()
                 et = time.time()
                 tt=et-st
-                self.logger.debug('Time spent on line %s: %s'%(i,tt))
+                self.logger.debug('Time spent on line {:s}: {:s}'.format(i,tt))
             # Store the table for future smart programming comparisons:
             try:
                 self.smart_cache['TABLE_DATA'][:len(data)] = data
@@ -446,7 +452,7 @@ class NovaTechDDS409B_ACWorker(Worker):
                 # Output will now be updated on falling edges.
                 pass
             else:
-                raise ValueError('invalid update mode %s'%str(self.update_mode))
+                raise ValueError('invalid update mode {:s}'.format(str(self.update_mode)))
                 
             
         return self.final_values
@@ -505,7 +511,7 @@ class NovaTechDDS409B_ACParser(object):
     def get_traces(self, add_trace, clock=None):
         if clock is None:
             # we're the master pseudoclock, software triggered. So we don't have to worry about trigger delays, etc
-            raise Exception('No clock passed to %s. The NovaTechDDS409B_AC must be clocked by another device.'%self.name)
+            raise Exception('No clock passed to {:s}. The NovaTechDDS409B_AC must be clocked by another device.'.format(self.name))
         
         times, clock_value = clock[0], clock[1]
         
@@ -519,20 +525,20 @@ class NovaTechDDS409B_ACParser(object):
         # get the data out of the H5 file
         data = {}
         with h5py.File(self.path, 'r') as f:
-            if 'TABLE_DATA' in f['devices/%s'%self.name]:
-                table_data = f['devices/%s/TABLE_DATA'%self.name][:]
+            if 'TABLE_DATA' in f['devices/{:s}'.format(self.name)]:
+                table_data = f['devices/{:s}/TABLE_DATA'.format(self.name)][:]
                 for i in self.dyn_chan:
                     for sub_chnl in ['freq', 'amp', 'phase']:                        
-                        data['channel %d_%s'%(i,sub_chnl)] = table_data['%s%d'%(sub_chnl,i)][:]
+                        data['channel {:d}_{:s}'.format(i,sub_chnl)] = table_data['{:s}{:d}'.format(sub_chnl,i)][:]
                                 
-            if 'STATIC_DATA' in f['devices/%s'%self.name]:
-                static_data = f['devices/%s/STATIC_DATA'%self.name][:]
+            if 'STATIC_DATA' in f['devices/{:s}'.format(self.name)]:
+                static_data = f['devices/{:s}/STATIC_DATA'.format(self.name)][:]
                 num_chan = len(static_data)//3
                 channels = [int(name[-1]) for name in static_data.dtype.names[0:num_chan]]
                 for i in channels:
                     for sub_chnl in ['freq', 'amp', 'phase']:                        
-                        data['channel %d_%s'%(i,sub_chnl)] = np.empty((len(clock_ticks),))
-                        data['channel %d_%s'%(i,sub_chnl)].fill(static_data['%s%d'%(sub_chnl,i)][0])
+                        data['channel {:d}_{:s}'.format(i,sub_chnl)] = np.empty((len(clock_ticks),))
+                        data['channel {:d}_{:s}'.format(i,sub_chnl)].fill(static_data['{:s}{:d}'.format(sub_chnl,i)][0])
             
         
         for channel, channel_data in data.items():
@@ -540,7 +546,7 @@ class NovaTechDDS409B_ACParser(object):
         
         for channel_name, channel in self.device.child_list.items():
             for subchnl_name, subchnl in channel.child_list.items():
-                connection = '%s_%s'%(channel.parent_port, subchnl.parent_port)
+                connection = '{:s}_{:s}'.format(channel.parent_port, subchnl.parent_port)
                 if connection in data:
                     add_trace(subchnl.name, data[connection], self.name, connection)
         

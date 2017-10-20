@@ -2,15 +2,13 @@
 #                                                                   #
 # /NovaTechDDS409B.py                                               #
 #                                                                   #
-# Copyright 2013, Monash University                                 #
-#                                                                   #
-# This file is part of the module labscript_devices, in the         #
-# labscript suite (see http://labscriptsuite.org), and is           #
-# licensed under the Simplified BSD License. See the license.txt    #
-# file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
-
+from __future__ import division, unicode_literals, print_function, absolute_import
+from labscript_utils import PY2
+if PY2:
+    str = unicode
+    
 from labscript_devices import runviewer_parser, labscript_device, BLACS_tab, BLACS_worker
 
 from labscript import StaticDDS, Device, config, LabscriptError, set_passed_properties
@@ -20,7 +18,6 @@ from naqslab_devices.NovaTechDDS409B_AC import *
 import numpy as np
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
-
         
 @labscript_device
 class NovaTechDDS409B(NovaTechDDS409B_AC):
@@ -33,7 +30,7 @@ class NovaTechDDS409B(NovaTechDDS409B_AC):
                  com_port = "", baud_rate=19200, **kwargs):
 
         Device.__init__(self, name, None, com_port, **kwargs)
-        self.BLACS_connection = '%s,%s'%(com_port, str(baud_rate))                   
+        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))                   
         
     def generate_code(self, hdf5_file):
         DDSs = {}
@@ -42,7 +39,7 @@ class NovaTechDDS409B(NovaTechDDS409B_AC):
                 prefix, channel = output.connection.split()
                 channel = int(channel)
             except:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(output.description,output.name,str(output.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 3.')
             DDSs[channel] = output
         for connection in DDSs:
@@ -53,20 +50,23 @@ class NovaTechDDS409B(NovaTechDDS409B_AC):
                 dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.static_value, dds)
                 dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.static_value, dds)
             else:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(dds.description,dds.name,str(dds.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 3.')
                  
-        static_dtypes = [('freq%d'%i,np.uint32) for i in DDSs] + \
-                        [('phase%d'%i,np.uint16) for i in DDSs] + \
-                        [('amp%d'%i,np.uint16) for i in DDSs]    
+        static_dtypes = {'names':['freq{:d}'.format(i) for i in DDSs] +
+                            ['amp{:d}'.format(i) for i in DDSs] +
+                            ['phase{:d}'.format(i) for i in DDSs],
+                            'formats':[np.uint32 for i in DDSs] +
+                            [np.uint16 for i in DDSs] + 
+                            [np.uint16 for i in DDSs]}  
         
         static_table = np.zeros(1, dtype=static_dtypes)            
         
         for connection in DDSs:
             dds = DDSs[connection]
-            static_table['freq%d'%connection] = dds.frequency.raw_output
-            static_table['amp%d'%connection] = dds.amplitude.raw_output
-            static_table['phase%d'%connection] = dds.phase.raw_output
+            static_table['freq{:d}'.format(connection)] = dds.frequency.raw_output
+            static_table['amp{:d}'.format(connection)] = dds.amplitude.raw_output
+            static_table['phase{:d}'.format(connection)] = dds.phase.raw_output
 
         grp = self.init_device_group(hdf5_file)
         grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
