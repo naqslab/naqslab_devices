@@ -2,6 +2,8 @@
 #                                                                   #
 # /NovaTechDDS409B_AC.py                                            #
 #                                                                   #
+# This code borrows very heavily from NovaTechDDS9m.py              #
+# at https://bitbucket.org/labscript_suite/labscript_devices        #
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
