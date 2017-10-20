@@ -12,8 +12,8 @@ from __future__ import unicode_literals
 
 import numpy as np
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
-from labscript_devices.VISA import VISATab, VISAWorker
-from labscript_devices.TekScope import ScopeChannel
+from naqslab_devices.VISA import VISATab, VISAWorker
+from naqslab_devices.TekScope import ScopeChannel
 from labscript import Device, TriggerableDevice, AnalogIn, DigitalQuantity, config, LabscriptError, set_passed_properties
 import labscript_utils.properties
 

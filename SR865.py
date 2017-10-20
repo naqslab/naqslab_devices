@@ -12,7 +12,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
-from labscript_devices.VISA import VISA, VISATab, VISAWorker
+from naqslab_devices.VISA import VISA, VISATab, VISAWorker
 from labscript import Device, AnalogOut, config, LabscriptError, set_passed_properties
 import labscript_utils.properties
 

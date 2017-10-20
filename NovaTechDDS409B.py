@@ -15,7 +15,7 @@ from labscript_devices import runviewer_parser, labscript_device, BLACS_tab, BLA
 
 from labscript import StaticDDS, Device, config, LabscriptError, set_passed_properties
 
-from labscript_devices.NovaTechDDS409B_AC import *
+from naqslab_devices.NovaTechDDS409B_AC import *
 
 import numpy as np
 import labscript_utils.h5_lock, h5py

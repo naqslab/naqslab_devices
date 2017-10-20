@@ -10,7 +10,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from labscript_devices.SignalGenerator import *
+from naqslab_devices.SignalGenerator import *
 from labscript import LabscriptError
 import labscript_utils.properties
         
