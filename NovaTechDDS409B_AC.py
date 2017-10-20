@@ -241,6 +241,7 @@ class NovaTechDDS409B_ACWorker(Worker):
         global h5py; import labscript_utils.h5_lock, h5py
         self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': '',
                                 'CURRENT_DATA':None}
+        self.baud_dict = {9600:'78', 19200:'3c', 38400:'1e',57600:'14',115200:'0a'}
         
         # conversion dictionaries for program_static from 
         # program_manual                      
@@ -250,6 +251,35 @@ class NovaTechDDS409B_ACWorker(Worker):
         
         self.connection = serial.Serial(self.com_port, baudrate = self.baud_rate, timeout=0.1)
         self.connection.readlines()
+        
+        # to configure baud rate, must determine current device baud rate
+        # first check desired, since it's most likely
+        connected, response = self.check_connection()
+        if not connected:
+            # not already set
+            bauds = self.baud_dict.keys()
+            if self.baud_rate in bauds:
+                bauds.remove(self.baud_rate)
+            else:
+                raise LabscriptError('{:d} baud rate not supported by Novatech 409B'.format(self.baud_rate))
+                
+            # iterate through other baud-rates to find current
+            for rate in bauds:
+                self.connection.baudrate = rate
+                connected, response = self.check_connection()
+                if connected:
+                    # found it!
+                    break
+            
+            # now we can set the desired baud rate
+            baud_string = 'Kb {:s}\r\n'.format(self.baud_dict[self.baud_rate])
+            self.connection.write(baud_string)
+            # ensure command finishes before switching rates in pyserial
+            time.sleep(0.1)
+            self.connection.baudrate = self.baud_rate
+            connected, response = self.check_connection()
+            if not connected:
+                raise LabscriptError('Error: Failed to execute command {:s}'.format(baud_string))           
         
         self.connection.write('e d\r\n')
         response = self.connection.readline()
@@ -269,6 +299,18 @@ class NovaTechDDS409B_ACWorker(Worker):
         
         # populate the 'CURRENT_DATA' dictionary    
         self.check_remote_values()
+        
+    def check_connection(self):
+        '''Sends non-command and tests for correct response
+        returns tuple of connection state and reponse string'''
+        # check twice since false positive possible on first check
+        self.connection.write('\r\n')
+        self.connection.readline()       
+        self.connection.write('\r\n')
+        response = self.connection.readline()
+        connected = response == 'OK\r\n'
+        
+        return connected, response
         
     def check_remote_values(self):
         # Get the currently output values:
