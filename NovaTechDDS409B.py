@@ -42,6 +42,11 @@ class NovaTechDDS409B(NovaTechDDS409B_AC):
                 raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(output.description,output.name,str(output.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 3.')
             DDSs[channel] = output
+            
+        if not DDSs:
+            # if no channels are being used, no need to continue
+            return
+            
         for connection in DDSs:
             if connection in range(4):
                 # Static DDS

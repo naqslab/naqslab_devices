@@ -108,6 +108,11 @@ class NovaTechDDS409B_AC(IntermediateDevice):
                 raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(output.description,output.name,str(output.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 4.')
             DDSs[channel] = output
+            
+        if not DDSs:
+            # if no channels are being used, no need to continue
+            return            
+
         for connection in DDSs:
             if connection in range(4):
                 dds = DDSs[connection]   
@@ -118,58 +123,71 @@ class NovaTechDDS409B_AC(IntermediateDevice):
                 raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(dds.description,dds.name,str(dds.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 4.')
         
-        dyn_DDSs = range(2)         
-        dtypes = {'names':['freq{:d}'.format(i) for i in dyn_DDSs] +
-                            ['amp{:d}'.format(i) for i in dyn_DDSs] +
-                            ['phase{:d}'.format(i) for i in dyn_DDSs],
-                            'formats':[np.uint32 for i in dyn_DDSs] +
-                            [np.uint16 for i in dyn_DDSs] + 
-                            [np.uint16 for i in dyn_DDSs]} 
+        # determine what types of channels are needed
+        stat_DDSs = set(DDSs)&set(range(2,4)) 
+        if set(DDSs)&set(range(2)):
+            dyn_DDSs = range(2)
+        else:
+            dyn_DDSs = []
         
-        stat_DDSs = set(DDSs)&set(range(2,4))          
-        static_dtypes = {'names':['freq{:d}'.format(i) for i in stat_DDSs] +
-                            ['amp{:d}'.format(i) for i in stat_DDSs] +
-                            ['phase{:d}'.format(i) for i in stat_DDSs],
-                            'formats':[np.uint32 for i in stat_DDSs] +
-                            [np.uint16 for i in stat_DDSs] + 
-                            [np.uint16 for i in stat_DDSs]} 
-         
-        clockline = self.parent_clock_line
-        pseudoclock = clockline.parent_device
-        times = pseudoclock.times[clockline]
-       
-        out_table = np.zeros(len(times),dtype=dtypes)
-        out_table['freq0'].fill(1)
-        out_table['freq1'].fill(1)
-        
-        static_table = np.zeros(1, dtype=static_dtypes)
-        
-        for connection in range(2):
-            if not connection in DDSs:
-                continue
-            dds = DDSs[connection]
-            # The last two instructions are left blank, for BLACS
-            # to fill in at program time.
-            out_table['freq{:d}'.format(connection)][:] = dds.frequency.raw_output
-            out_table['amp{:d}'.format(connection)][:] = dds.amplitude.raw_output
-            out_table['phase{:d}'.format(connection)][:] = dds.phase.raw_output
-        for connection in range(2,4):
-            if not connection in DDSs:
-                continue
-            dds = DDSs[connection]
-            static_table['freq{:d}'.format(connection)] = dds.frequency.raw_output[0]
-            static_table['amp{:d}'.format(connection)] = dds.amplitude.raw_output[0]
-            static_table['phase{:d}'.format(connection)] = dds.phase.raw_output[0]
+        if dyn_DDSs:
+            # only do dynamic channels if needed    
+            dtypes = {'names':['freq{:d}'.format(i) for i in dyn_DDSs] +
+                                ['amp{:d}'.format(i) for i in dyn_DDSs] +
+                                ['phase{:d}'.format(i) for i in dyn_DDSs],
+                                'formats':[np.uint32 for i in dyn_DDSs] +
+                                [np.uint16 for i in dyn_DDSs] + 
+                                [np.uint16 for i in dyn_DDSs]}  
+             
+            clockline = self.parent_clock_line
+            pseudoclock = clockline.parent_device
+            times = pseudoclock.times[clockline]
+           
+            out_table = np.zeros(len(times),dtype=dtypes)
+            out_table['freq0'].fill(1)
+            out_table['freq1'].fill(1)
             
-        if self.update_mode == 'asynchronous':
-            # Duplicate the first line. Otherwise, we are one step ahead in the table
-            # from the start of a run. This problem is not completely understood, but this
-            # fixes it:
-            out_table = np.concatenate([out_table[0:1], out_table])
-
+            for connection in range(2):
+                if not connection in DDSs:
+                    continue
+                dds = DDSs[connection]
+                # The last two instructions are left blank, for BLACS
+                # to fill in at program time.
+                out_table['freq{:d}'.format(connection)][:] = dds.frequency.raw_output
+                out_table['amp{:d}'.format(connection)][:] = dds.amplitude.raw_output
+                out_table['phase{:d}'.format(connection)][:] = dds.phase.raw_output
+                
+            if self.update_mode == 'asynchronous':
+                # Duplicate the first line. Otherwise, we are one step ahead in the table
+                # from the start of a run. This problem is not completely understood, but this
+                # fixes it:
+                out_table = np.concatenate([out_table[0:1], out_table])
+            
+        if stat_DDSs:
+            # only do static channels if needed
+            static_dtypes = {'names':['freq{:d}'.format(i) for i in stat_DDSs] +
+                                ['amp{:d}'.format(i) for i in stat_DDSs] +
+                                ['phase{:d}'.format(i) for i in stat_DDSs],
+                                'formats':[np.uint32 for i in stat_DDSs] +
+                                [np.uint16 for i in stat_DDSs] + 
+                                [np.uint16 for i in stat_DDSs]}            
+            
+            static_table = np.zeros(1, dtype=static_dtypes)
+                
+            for connection in range(2,4):
+                if not connection in DDSs:
+                    continue
+                dds = DDSs[connection]
+                static_table['freq{:d}'.format(connection)] = dds.frequency.raw_output[0]
+                static_table['amp{:d}'.format(connection)] = dds.amplitude.raw_output[0]
+                static_table['phase{:d}'.format(connection)] = dds.phase.raw_output[0]
+            
+        # write out data tables
         grp = self.init_device_group(hdf5_file)
-        grp.create_dataset('TABLE_DATA',compression=config.compression,data=out_table) 
-        grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
+        if dyn_DDSs:
+            grp.create_dataset('TABLE_DATA',compression=config.compression,data=out_table) 
+        if stat_DDSs: 
+            grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
         self.set_property('frequency_scale_factor', dds.frequency.scale_factor, location='device_properties')
         self.set_property('amplitude_scale_factor', dds.amplitude.scale_factor, location='device_properties')
         self.set_property('phase_scale_factor', dds.phase.scale_factor, location='device_properties')
