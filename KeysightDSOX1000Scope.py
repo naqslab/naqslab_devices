@@ -9,7 +9,6 @@ from labscript_utils import PY2
 if PY2:
     str = unicode
 
-import numpy as np
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 from naqslab_devices.TekScope import ScopeChannel
 from naqslab_devices.KeysightMSOX3000Scope import KeysightMSOX3000Scope, KeysightMSOX3000ScopeTab, KeysightMSOX3000Worker
