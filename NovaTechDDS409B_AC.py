@@ -298,7 +298,7 @@ class NovaTechDDS409B_ACWorker(Worker):
                     break
             
             # now we can set the desired baud rate
-            baud_string = 'Kb {:s}\r\n'.format(self.baud_dict[self.baud_rate])
+            baud_string = b'Kb {:s}\r\n'.format(self.baud_dict[self.baud_rate])
             self.connection.write(baud_string)
             # ensure command finishes before switching rates in pyserial
             time.sleep(0.1)
@@ -307,7 +307,7 @@ class NovaTechDDS409B_ACWorker(Worker):
             if not connected:
                 raise LabscriptError('Error: Failed to execute command {:s}'.format(baud_string))           
         
-        self.connection.write('e d\r\n')
+        self.connection.write(b'e d\r\n')
         response = self.connection.readline()
         if response == 'e d\r\n':
             # if echo was enabled, then the command to disable it echos back at us!
@@ -315,11 +315,11 @@ class NovaTechDDS409B_ACWorker(Worker):
         if response != "OK\r\n":
             raise Exception('Error: Failed to execute command: "e d". Cannot connect to the device.')
         
-        self.connection.write('I a\r\n')
+        self.connection.write(b'I a\r\n')
         if self.connection.readline() != "OK\r\n":
             raise Exception('Error: Failed to execute command: "I a"')
         
-        self.connection.write('m 0\r\n')
+        self.connection.write(b'm 0\r\n')
         if self.connection.readline() != "OK\r\n":
             raise Exception('Error: Failed to execute command: "m 0"')
         
@@ -330,9 +330,9 @@ class NovaTechDDS409B_ACWorker(Worker):
         '''Sends non-command and tests for correct response
         returns tuple of connection state and reponse string'''
         # check twice since false positive possible on first check
-        self.connection.write('\r\n')
+        self.connection.write(b'\r\n')
         self.connection.readline()       
-        self.connection.write('\r\n')
+        self.connection.write(b'\r\n')
         response = self.connection.readline()
         connected = response == 'OK\r\n'
         
@@ -340,7 +340,7 @@ class NovaTechDDS409B_ACWorker(Worker):
         
     def check_remote_values(self):
         # Get the currently output values:
-        self.connection.write('QUE\r\n')
+        self.connection.write(b'QUE\r\n')
         try:
             response = [self.connection.readline() for i in range(5)]
         except socket.timeout:
@@ -376,17 +376,17 @@ class NovaTechDDS409B_ACWorker(Worker):
 
     def program_static(self,channel,type,value):            
         if type == 'freq':
-            command = 'F{:d} {:.7f}\r\n'.format(channel,value)
+            command = b'F{:d} {:.7f}\r\n'.format(channel,value)
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: {:s}'.format(command))
         elif type == 'amp':
-            command = 'V{:d} {:u}\r\n'.format(channel,int(value))
+            command = b'V{:d} {:d}\r\n'.format(channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: {:s}'.format(command))
         elif type == 'phase':
-            command = 'P{:d} {:u}\r\n'.format(channel,value)
+            command = b'P{:d} {:d}\r\n'.format(channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: {:s}'.format(command))
@@ -435,7 +435,7 @@ class NovaTechDDS409B_ACWorker(Worker):
                 oldtable = self.smart_cache['TABLE_DATA']
                 for ddsno in range(2):
                     if fresh or i >= len(oldtable) or (line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]) != (oldtable[i]['freq%d'%ddsno],oldtable[i]['phase%d'%ddsno],oldtable[i]['amp%d'%ddsno]):
-                        self.connection.write('t%d %04x %08x,%04x,%04x,ff\r\n'%(ddsno, i,line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]))
+                        self.connection.write(b't%d %04x %08x,%04x,%04x,ff\r\n'%(ddsno, i,line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]))
                         self.connection.readline()
                 et = time.time()
                 tt=et-st
@@ -460,11 +460,11 @@ class NovaTechDDS409B_ACWorker(Worker):
             self.final_values['channel 1']['phase'] = data[-1]['phase1']*360/16384.0
             
             # Transition to table mode:
-            self.connection.write('m t\r\n')
+            self.connection.write(b'm t\r\n')
             self.connection.readline()
             if self.update_mode == 'synchronous':
                 # Transition to hardware synchronous updates:
-                self.connection.write('I e\r\n')
+                self.connection.write(b'I e\r\n')
                 self.connection.readline()
                 # We are now waiting for a rising edge to trigger the output
                 # of the second table pair (first of the experiment)
@@ -485,10 +485,10 @@ class NovaTechDDS409B_ACWorker(Worker):
         return self.transition_to_manual(True)
     
     def transition_to_manual(self,abort = False):
-        self.connection.write('m 0\r\n')
+        self.connection.write(b'm 0\r\n')
         if self.connection.readline() != "OK\r\n":
             raise Exception('Error: Failed to execute command: "m 0"')
-        self.connection.write('I a\r\n')
+        self.connection.write(b'I a\r\n')
         if self.connection.readline() != "OK\r\n":
             raise Exception('Error: Failed to execute command: "I a"')
         if abort:
