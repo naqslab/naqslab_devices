@@ -9,6 +9,43 @@ Clone this repository into the labscript suite directory. Invoke in labscript sc
 from naqslab_devices.TekScope import TekScope, ScopeChannel
 ```
 
+As of now BLACS will only look in the labscript\_devices repository for device classes. 
+A quick workaround for this until a more permanant solution is implemented is this diff applied to \_\_init\_\_.py in labscript\_devices
+
+```diff
+@@ -11,6 +11,8 @@
+ check_version('labscript', '2.1', '3')
+ check_version('blacs', '2.1', '3')
+ 
++lab_repo = 'naqslab_devices'
++
+ 
+ class ClassRegister(object):
+     """A register for looking up classes by module name.  Provides a
+@@ -49,6 +51,11 @@
+             importlib.import_module('.' + name, __name__)
+             print 'imported', name, 'ok!'
+         except ImportError:
+-            sys.stderr.write('Error importing module %s.%s whilst looking for classes for device %s. '%(__name__, name, name) +
++            # next try looking in the lab's device folder
++            try:
++                importlib.import_module('.' + name, lab_repo)
++            
++            except ImportError:
++                sys.stderr.write('Error importing module %s.%s whilst looking for classes for device %s. '%(__name__, name, name) +
+                              'Check that the module exists, is named correctly, and can be imported with no errors. ' +
+                              'Full traceback follows:\n')
+@@ -53,6 +60,6 @@
+                              'Check that the module exists, is named correctly, and can be imported with no errors. ' +
+                              'Full traceback follows:\n')
+-            raise
++                raise
+         # Class definitions in that module have executed now, check to see if class is in our register:
+         try:
+             return self.registered_classes[name]
+
+```
+
 Usage of individual devices varies somewhat. Here is an example connectiontable showing some of their instantiation
 ```python
 from labscript import *
