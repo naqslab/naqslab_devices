@@ -20,10 +20,12 @@ from labscript import LabscriptError
 class KeysightDSOX1000Scope(KeysightMSOX3000Scope):
     description = 'Keysight DSO-X1000 Series Digital Oscilliscope'
     allowed_children = [ScopeChannel]
-    allowed_analog_chan = ['Channel {0:d}'.format(i) for i in range(1,5)]
-    allowed_pod1_chan = []
-    allowed_pod2_chan = []
-    trigger_duration = 1e-3
+    
+    def __init__(self, name, VISA_name, trigger_device, trigger_connection, 
+        num_AI=2, DI=False, trigger_duration=1e-3, **kwargs):
+        KeysightMSOX3000Scope.__init__(self,name,VISA_name,
+        trigger_device,trigger_connection,
+        num_AI,DI,trigger_duration,**kwargs)
 
 @BLACS_tab
 class KeysightDSOX1000ScopeTab(KeysightMSOX3000ScopeTab):

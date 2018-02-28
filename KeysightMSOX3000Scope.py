@@ -37,21 +37,26 @@ class CounterScopeChannel(ScopeChannel):
 class KeysightMSOX3000Scope(TriggerableDevice):
     description = 'Keysight MSO-X3000 Series Digital Oscilliscope'
     allowed_children = [ScopeChannel]
-    allowed_analog_chan = ['Channel {0:d}'.format(i) for i in range(1,5)]
-    allowed_pod1_chan = ['Digital {0:d}'.format(i) for i in range(0,8)]
-    allowed_pod2_chan = ['Digital {0:d}'.format(i) for i in range(8,16)]
-    trigger_duration = 1e-3
     
     @set_passed_properties(property_names = {
         "device_properties":["VISA_name"]}
         )
-    def __init__(self, name,VISA_name, trigger_device, trigger_connection, **kwargs):
+    def __init__(self, name, VISA_name, trigger_device, trigger_connection, 
+        num_AI=4, DI=True, trigger_duration=1e-3, **kwargs):
         '''VISA_name can be full VISA connection string or NI-MAX alias.
-        Trigger Device should be fast clocked device. '''
+        Trigger Device should be fast clocked device. 
+        num_AI sets number of analog input channels, default 4
+        DI sets if DI are present, default True
+        trigger_duration set scope trigger duration, default 1ms'''
         self.VISA_name = VISA_name
         self.BLACS_connection = VISA_name
         TriggerableDevice.__init__(self,name,trigger_device,trigger_connection,**kwargs)
         
+        self.trigger_duration = trigger_duration
+        self.allowed_analog_chan = ['Channel {0:d}'.format(i) for i in range(1,num_AI+1)]
+        if DI:
+            self.allowed_pod1_chan = ['Digital {0:d}'.format(i) for i in range(0,8)]
+            self.allowed_pod2_chan = ['Digital {0:d}'.format(i) for i in range(8,16)]        
         
     def generate_code(self, hdf5_file):
             
@@ -121,10 +126,10 @@ class KeysightMSOX3000ScopeTab(VISATab):
                           'bit 1':'Unused',
                           'bit 0':'Operation Complete'}
     
-    def __init__(self,*args,**kwargs):
+    def __init__(self,**kwargs):
         if not hasattr(self,'device_worker_class'):
             self.device_worker_class = KeysightMSOX3000Worker
-        VISATab.__init__(self,*args,**kwargs)
+        VISATab.__init__(self,**kwargs)
     
     def initialise_GUI(self):
         # Call the VISATab parent to initialise the STB ui and set the worker
