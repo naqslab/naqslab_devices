@@ -147,6 +147,7 @@ class KeysightMSOX3000Worker(VISAWorker):
     read_dig_parameters_string = ':WAV:FORM BYTE;SOUR POD{0:d};PRE?'
     read_waveform_string = ':WAV:DATA?'
     read_counter_string = ':MEAS:{0:s}{1:s}? CHAN{2:d}'
+    model_ident = 'MSO-X 3'
     
     # define result parser
     def analog_waveform_parser(self,raw_waveform_array,y0,dy,yoffset):
@@ -173,7 +174,7 @@ class KeysightMSOX3000Worker(VISAWorker):
         
         # Query device name to ensure supported scope
         ident_string = self.connection.query('*IDN?')
-        if ('KEYSIGHT' in ident_string) and ('MSO-X 3' in ident_string):
+        if ('KEYSIGHT' in ident_string) and (model_ident in ident_string):
             # Scope supported!
             pass
         else:
