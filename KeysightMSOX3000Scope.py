@@ -126,10 +126,10 @@ class KeysightMSOX3000ScopeTab(VISATab):
                           'bit 1':'Unused',
                           'bit 0':'Operation Complete'}
     
-    def __init__(self,**kwargs):
+    def __init__(self,*args,**kwargs):
         if not hasattr(self,'device_worker_class'):
             self.device_worker_class = KeysightMSOX3000Worker
-        VISATab.__init__(self,**kwargs)
+        VISATab.__init__(self,*args,**kwargs)
     
     def initialise_GUI(self):
         # Call the VISATab parent to initialise the STB ui and set the worker
@@ -179,7 +179,7 @@ class KeysightMSOX3000Worker(VISAWorker):
         
         # Query device name to ensure supported scope
         ident_string = self.connection.query('*IDN?')
-        if ('KEYSIGHT' in ident_string) and (model_ident in ident_string):
+        if ('KEYSIGHT' in ident_string) and (self.model_ident in ident_string):
             # Scope supported!
             pass
         else:
