@@ -83,8 +83,7 @@ class NovaTechDDS409B(NovaTechDDS409B_AC):
 class NovaTechDDS409BTab(NovaTechDDS409B_ACTab):
     
     def __init__(self,*args,**kwargs):
-        if not hasattr(self,'device_worker_class'):
-            self.device_worker_class = NovaTechDDS409BWorker
+        self.device_worker_class = NovaTechDDS409BWorker
         NovaTechDDS409B_ACTab.__init__(self,*args,**kwargs)
 
 
