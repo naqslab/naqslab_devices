@@ -544,19 +544,24 @@ class NovaTechDDS409B_ACParser(object):
         
         # get the data out of the H5 file
         data = {}
-        with h5py.File(self.path, 'r') as f:
-            if 'TABLE_DATA' in f['devices/{:s}'.format(self.name)]:
-                table_data = f['devices/{:s}/TABLE_DATA'.format(self.name)][:]
+        with h5py.File(self.path, 'r') as hdf5_file:
+            if 'TABLE_DATA' in hdf5_file['devices/{:s}'.format(self.name)]:
+                table_data = hdf5_file['devices/{:s}/TABLE_DATA'.format(self.name)][:]
+                connection_table_properties = labscript_utils.properties.get(hdf5_file, self.name, 'connection_table_properties')
+                update_mode = getattr(connection_table_properties, 'update_mode', 'synchronous')
+                synchronous_first_line_repeat = getattr(connection_table_properties, 'synchronous_first_line_repeat', False)
+                if update_mode == 'asynchronous' or synchronous_first_line_repeat:
+                    table_data = table_data[1:]
                 for i in self.dyn_chan:
-                    for sub_chnl in ['freq', 'amp', 'phase']:                        
+                    for sub_chnl in ['freq', 'amp', 'phase']:
                         data['channel {:d}_{:s}'.format(i,sub_chnl)] = table_data['{:s}{:d}'.format(sub_chnl,i)][:]
                                 
-            if 'STATIC_DATA' in f['devices/{:s}'.format(self.name)]:
-                static_data = f['devices/{:s}/STATIC_DATA'.format(self.name)][:]
+            if 'STATIC_DATA' in hdf5_file['devices/{:s}'.format(self.name)]:
+                static_data = hdf5_file['devices/{:s}/STATIC_DATA'.format(self.name)][:]
                 num_chan = len(static_data)//3
                 channels = [int(name[-1]) for name in static_data.dtype.names[0:num_chan]]
                 for i in channels:
-                    for sub_chnl in ['freq', 'amp', 'phase']:                        
+                    for sub_chnl in ['freq', 'amp', 'phase']:
                         data['channel {:d}_{:s}'.format(i,sub_chnl)] = np.empty((len(clock_ticks),))
                         data['channel {:d}_{:s}'.format(i,sub_chnl)].fill(static_data['{:s}{:d}'.format(sub_chnl,i)][0])
             
