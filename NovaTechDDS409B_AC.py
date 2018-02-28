@@ -381,12 +381,12 @@ class NovaTechDDS409B_ACWorker(Worker):
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: {:s}'.format(command))
         elif type == 'amp':
-            command = 'V{:d} {:u}\r\n'.format(channel,int(value))
+            command = 'V{:d} {:d}\r\n'.format(channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: {:s}'.format(command))
         elif type == 'phase':
-            command = 'P{:d} {:u}\r\n'.format(channel,value)
+            command = 'P{:d} {:d}\r\n'.format(channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
                 raise Exception('Error: Failed to execute command: {:s}'.format(command))
