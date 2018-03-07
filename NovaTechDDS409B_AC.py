@@ -330,10 +330,11 @@ class NovaTechDDS409B_ACWorker(Worker):
         '''Sends non-command and tests for correct response
         returns tuple of connection state and reponse string'''
         # check twice since false positive possible on first check
+        # use readlines in case echo is on
         self.connection.write(b'\r\n')
-        self.connection.readline()       
+        self.connection.readlines()       
         self.connection.write(b'\r\n')
-        response = self.connection.readline()
+        response = self.connection.readlines()[-1]
         connected = response == 'OK\r\n'
         
         return connected, response
