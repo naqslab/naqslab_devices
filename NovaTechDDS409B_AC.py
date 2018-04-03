@@ -283,7 +283,7 @@ class NovaTechDDS409B_ACWorker(Worker):
         connected, response = self.check_connection()
         if not connected:
             # not already set
-            bauds = self.baud_dict.keys()
+            bauds = list(self.baud_dict)
             if self.baud_rate in bauds:
                 bauds.remove(self.baud_rate)
             else:
@@ -298,29 +298,29 @@ class NovaTechDDS409B_ACWorker(Worker):
                     break
             
             # now we can set the desired baud rate
-            baud_string = b'Kb {:s}\r\n'.format(self.baud_dict[self.baud_rate])
+            baud_string = b'Kb %a\r\n' % (self.baud_dict[self.baud_rate])
             self.connection.write(baud_string)
             # ensure command finishes before switching rates in pyserial
             time.sleep(0.1)
             self.connection.baudrate = self.baud_rate
             connected, response = self.check_connection()
             if not connected:
-                raise LabscriptError('Error: Failed to execute command {:s}'.format(baud_string))           
+                raise LabscriptError('Error: Failed to execute command %s' % baud_string)           
         
         self.connection.write(b'e d\r\n')
         response = self.connection.readline()
-        if response == 'e d\r\n':
+        if response == b'e d\r\n':
             # if echo was enabled, then the command to disable it echos back at us!
             response = self.connection.readline()
-        if response != "OK\r\n":
+        if response != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "e d". Cannot connect to the device.')
         
         self.connection.write(b'I a\r\n')
-        if self.connection.readline() != "OK\r\n":
+        if self.connection.readline() != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "I a"')
         
         self.connection.write(b'm 0\r\n')
-        if self.connection.readline() != "OK\r\n":
+        if self.connection.readline() != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "m 0"')
         
         # populate the 'CURRENT_DATA' dictionary    
@@ -334,8 +334,13 @@ class NovaTechDDS409B_ACWorker(Worker):
         self.connection.write(b'\r\n')
         self.connection.readlines()       
         self.connection.write(b'\r\n')
-        response = self.connection.readlines()[-1]
-        connected = response == 'OK\r\n'
+        try:
+            response = self.connection.readlines()[-1]
+            connected = response == b'OK\r\n'
+        except IndexError:
+            # empty response, probably not connected
+            connected = False
+            response = ''
         
         return connected, response
         
@@ -377,20 +382,20 @@ class NovaTechDDS409B_ACWorker(Worker):
 
     def program_static(self,channel,type,value):            
         if type == 'freq':
-            command = b'F{:d} {:.7f}\r\n'.format(channel,value)
+            command = b'F%d %.7f\r\n' % (channel,value)
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
-                raise Exception('Error: Failed to execute command: {:s}'.format(command))
+                raise Exception('Error: Failed to execute command: %s' % command)
         elif type == 'amp':
-            command = b'V{:d} {:d}\r\n'.format(channel,int(value))
+            command = b'V%d %d\r\n' % (channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
-                raise Exception('Error: Failed to execute command: {:s}'.format(command))
+                raise Exception('Error: Failed to execute command: %s' % command)
         elif type == 'phase':
-            command = b'P{:d} {:d}\r\n'.format(channel,int(value))
+            command = b'P%d %d\r\n' % (channel,int(value))
             self.connection.write(command)
             if self.connection.readline() != "OK\r\n":
-                raise Exception('Error: Failed to execute command: {:s}'.format(command))
+                raise Exception('Error: Failed to execute command: %s' % command)
         else:
             raise TypeError(type)
      
