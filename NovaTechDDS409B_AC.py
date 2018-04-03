@@ -340,7 +340,7 @@ class NovaTechDDS409B_ACWorker(Worker):
         except IndexError:
             # empty response, probably not connected
             connected = False
-            response = ''
+            response = b''
         
         return connected, response
         
@@ -384,17 +384,17 @@ class NovaTechDDS409B_ACWorker(Worker):
         if type == 'freq':
             command = b'F%d %.7f\r\n' % (channel,value)
             self.connection.write(command)
-            if self.connection.readline() != "OK\r\n":
+            if self.connection.readline() != b'OK\r\n':
                 raise Exception('Error: Failed to execute command: %s' % command)
         elif type == 'amp':
             command = b'V%d %d\r\n' % (channel,int(value))
             self.connection.write(command)
-            if self.connection.readline() != "OK\r\n":
+            if self.connection.readline() != b'OK\r\n':
                 raise Exception('Error: Failed to execute command: %s' % command)
         elif type == 'phase':
             command = b'P%d %d\r\n' % (channel,int(value))
             self.connection.write(command)
-            if self.connection.readline() != "OK\r\n":
+            if self.connection.readline() != b'OK\r\n':
                 raise Exception('Error: Failed to execute command: %s' % command)
         else:
             raise TypeError(type)
@@ -492,10 +492,10 @@ class NovaTechDDS409B_ACWorker(Worker):
     
     def transition_to_manual(self,abort = False):
         self.connection.write(b'm 0\r\n')
-        if self.connection.readline() != "OK\r\n":
+        if self.connection.readline() != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "m 0"')
         self.connection.write(b'I a\r\n')
-        if self.connection.readline() != "OK\r\n":
+        if self.connection.readline() != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "I a"')
         if abort:
             # If we're aborting the run, then we need to reset DDSs 2 and 3 to their initial values.
