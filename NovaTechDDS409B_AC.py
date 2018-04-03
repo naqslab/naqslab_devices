@@ -267,7 +267,7 @@ class NovaTechDDS409B_ACWorker(Worker):
         global h5py; import labscript_utils.h5_lock, h5py
         self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': '',
                                 'CURRENT_DATA':None}
-        self.baud_dict = {9600:'78', 19200:'3c', 38400:'1e',57600:'14',115200:'0a'}
+        self.baud_dict = {9600:b'78', 19200:b'3c', 38400:b'1e',57600:b'14',115200:b'0a'}
         
         # conversion dictionaries for program_static from 
         # program_manual                      
@@ -298,7 +298,7 @@ class NovaTechDDS409B_ACWorker(Worker):
                     break
             
             # now we can set the desired baud rate
-            baud_string = b'Kb %a\r\n' % (self.baud_dict[self.baud_rate])
+            baud_string = b'Kb %b\r\n' % (self.baud_dict[self.baud_rate])
             self.connection.write(baud_string)
             # ensure command finishes before switching rates in pyserial
             time.sleep(0.1)
