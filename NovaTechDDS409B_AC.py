@@ -551,7 +551,7 @@ class NovaTechDDS409B_ACParser(object):
         # get the data out of the H5 file
         data = {}
         with h5py.File(self.path, 'r') as hdf5_file:
-            if 'TABLE_DATA' in hdf5_file['devices/%s' self.name]:
+            if 'TABLE_DATA' in hdf5_file['devices/%s' % self.name]:
                 table_data = hdf5_file['devices/%s/TABLE_DATA' % self.name][:]
                 connection_table_properties = labscript_utils.properties.get(hdf5_file, self.name, 'connection_table_properties')
                 update_mode = getattr(connection_table_properties, 'update_mode', 'synchronous')
