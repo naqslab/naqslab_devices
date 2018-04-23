@@ -298,7 +298,7 @@ class NovaTechDDS409B_ACWorker(Worker):
                     break
             
             # now we can set the desired baud rate
-            baud_string = b'Kb %b\r\n' % (self.baud_dict[self.baud_rate])
+            baud_string = b'Kb %s\r\n' % (self.baud_dict[self.baud_rate])
             self.connection.write(baud_string)
             # ensure command finishes before switching rates in pyserial
             time.sleep(0.1)
