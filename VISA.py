@@ -43,12 +43,8 @@ import os
 import sys
 
 # Imports for handling icons in STBstatus.ui
-if 'PySide' in sys.modules.copy():
-    from PySide import QtCore
-    from PySide import QtGui
-else:
-    from PyQt4 import QtCore
-    from PyQt4 import QtGui
+from qtutils.qt import QtCore
+from qtutils.qt import QtGui
 
 @BLACS_tab
 class VISATab(DeviceTab):
