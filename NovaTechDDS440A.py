@@ -30,7 +30,20 @@ class NovaTechDDS440A(NovaTechDDS409B_AC):
                  com_port = "", baud_rate=19200, **kwargs):
 
         Device.__init__(self, name, None, com_port, **kwargs)
-        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))                   
+        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))   
+        
+    def quantise_freq(self, data, device):
+        if not isinstance(data, np.ndarray):
+            data = np.array(data)
+        # Ensure that frequencies are within bounds:
+        if np.any(data > 402.653183e6 )  or np.any(data < 0.2e3 ):
+            raise LabscriptError('%s %s ' % (device.description, device.name) +
+                              'can only have frequencies between 200kHz and 402MHz, ' + 
+                              'the limit imposed by %s.' % self.name)
+        # It's faster to add 0.5 then typecast than to round to integers first:
+        data = np.array((data)+0.5,dtype=np.uint32)
+        scale_factor = 10
+        return data, scale_factor
         
     def generate_code(self, hdf5_file):
         DDSs = {}
@@ -40,7 +53,7 @@ class NovaTechDDS440A(NovaTechDDS409B_AC):
                 channel = int(channel)
             except:
                 raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(output.description,output.name,str(output.connection)) + 
-                                     'Format must be \'channel n\' with n from 0 to 3.')
+                                     'Format must be \'channel 0\'.')
             DDSs[channel] = output
             
         if not DDSs:
@@ -53,13 +66,15 @@ class NovaTechDDS440A(NovaTechDDS409B_AC):
                 dds = DDSs[connection]   
                 dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.static_value, dds)
                 dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.static_value, dds)
-                dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.static_value, dds)
             else:
                 raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(dds.description,dds.name,str(dds.connection)) + 
                                      'Format must be \'channel 0\'.')
+                                     
+        if dds.amplitude.static_value != 0.0:
+            # user has tried to set amplitude away from default
+            raise LabscriptError('{:s}:{:s} does not have controllable amplitude'.format(self.name, dds.name))
                  
         static_dtypes = {'names':['freq{:d}'.format(i) for i in DDSs] +
-                            ['amp{:d}'.format(i) for i in DDSs] +
                             ['phase{:d}'.format(i) for i in DDSs],
                             'formats':[np.uint32 for i in DDSs] +
                             [np.uint16 for i in DDSs] + 
@@ -70,13 +85,11 @@ class NovaTechDDS440A(NovaTechDDS409B_AC):
         for connection in DDSs:
             dds = DDSs[connection]
             static_table['freq{:d}'.format(connection)] = dds.frequency.raw_output
-            static_table['amp{:d}'.format(connection)] = dds.amplitude.raw_output
             static_table['phase{:d}'.format(connection)] = dds.phase.raw_output
 
         grp = self.init_device_group(hdf5_file)
         grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
         self.set_property('frequency_scale_factor', dds.frequency.scale_factor, location='device_properties')
-        self.set_property('amplitude_scale_factor', dds.amplitude.scale_factor, location='device_properties')
         self.set_property('phase_scale_factor', dds.phase.scale_factor, location='device_properties') 
 
 @BLACS_tab
@@ -90,7 +103,7 @@ class NovaTechDDS440ATab(NovaTechDDS409B_ACTab):
     def initialise_GUI(self):        
         # Capabilities
         self.base_units =    {'freq':'Hz',               'phase':'Degrees'}
-        self.base_min =      {'freq':0.0,                'phase':0}
+        self.base_min =      {'freq':200e3,              'phase':0}
         self.base_max =      {'freq':402.653183*10.0**6, 'phase':360}
         self.base_step =     {'freq':10**6,              'phase':1}
         self.base_decimals = {'freq':0,                  'phase':3} # TODO: find out what the phase precision is!
@@ -207,6 +220,8 @@ class NovaTechDDS440AWorker(NovaTechDDS409B_ACWorker):
             self.connection.write(command)
             if self.connection.readline() != b'OK\r\n':
                 raise Exception('Error: Failed to execute command: %s' % command)
+        elif type == 'amp':
+            raise Exception('Error: Novatech 440A cannot control amp')
         elif type == 'phase':
             command = b'P%d %d\r\n' % (channel,int(value))
             self.connection.write(command)
