@@ -31,14 +31,15 @@ class NovaTechDDS409B_AC(IntermediateDevice):
         property_names = {'connection_table_properties': ['update_mode']}
         )
     def __init__(self, name, parent_device, 
-                 com_port = "", baud_rate=19200, update_mode='synchronous', **kwargs):
+                 com_port = "", baud_rate=19200, update_mode='synchronous', synchronous_first_line_repeat=False, **kwargs):
 
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
         self.BLACS_connection = '%s,%s' % (com_port, str(baud_rate))
         if not update_mode in ['synchronous', 'asynchronous']:
             raise LabscriptError('update_mode must be \'synchronous\' or \'asynchronous\'')            
         
-        self.update_mode = update_mode        
+        self.update_mode = update_mode
+        self.synchronous_first_line_repeat = synchronous_first_line_repeat        
         
     def add_device(self, device):
         Device.add_device(self, device)
@@ -157,10 +158,24 @@ class NovaTechDDS409B_AC(IntermediateDevice):
                 out_table['amp%d' % connection][:] = dds.amplitude.raw_output
                 out_table['phase%d' % connection][:] = dds.phase.raw_output
                 
-            if self.update_mode == 'asynchronous':
-                # Duplicate the first line. Otherwise, we are one step ahead in the table
-                # from the start of a run. This problem is not completely understood, but this
-                # fixes it:
+            if self.update_mode == 'asynchronous' or self.synchronous_first_line_repeat:
+                # Duplicate the first line of the table. Otherwise, we are one step
+                # ahead in the table from the start of a run. In asynchronous
+                # updating mode, this is necessary since the first line of the
+                # table is already being output before the first trigger from
+                # the master clock. When using a simple delay line for synchronous
+                # output, this also seems to be required, in which case
+                # synchronous_first_line_repeat should be set to True.
+                # However, when a tristate driver is used as described at
+                # http://labscriptsuite.org/blog/implementation-of-the-novatech-dds9m/
+                # then is is not neccesary to duplicate the first line. Use of a
+                # tristate driver in this way is the correct way to use
+                # the novatech DDS, as per its instruction manual, and so is likely
+                # to be the most reliable. However, through trial and error we've
+                # determined that duplicating the first line like this gives correct
+                # output in asynchronous mode and in synchronous mode when using a
+                # simple delay line, at least for the specific device we tested.
+                # Your milage may vary.
                 out_table = np.concatenate([out_table[0:1], out_table])
             
         if stat_DDSs:
