@@ -5,7 +5,8 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
+import traceback
+from labscript_utils import PY2, dedent
 if PY2:
     str = unicode
     
@@ -43,9 +44,11 @@ class NovaTechDDS440A(NovaTechDDS409B_AC):
             data = np.array(data)
         # Ensure that frequencies are within bounds:
         if np.any(data > 402.653183e6 )  or np.any(data < 0.2e3 ):
-            raise LabscriptError('%s %s ' % (device.description, device.name) +
-                              'can only have frequencies between 200kHz and 402MHz, ' + 
-                              'the limit imposed by %s.' % self.name)
+            msg = """%s %s
+            can only have frequencies between 200kHz and 402MHz,
+            this limit imposed by %s."""
+            msg = dedent(msg) % (device.description, device.name, self.name) + traceback.format_exc()
+            raise LabscriptError(msg)
         # It's faster to add 0.5 then typecast than to round to integers first:
         data = np.array((data)+0.5,dtype=np.uint32)
         scale_factor = 10
