@@ -30,7 +30,13 @@ class NovaTechDDS440A(NovaTechDDS409B_AC):
                  com_port = "", baud_rate=19200, **kwargs):
 
         Device.__init__(self, name, None, com_port, **kwargs)
-        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))   
+        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))
+
+    def add_device(self, device):
+        Device.add_device(self, device)
+        # The Novatech doesn't support 0Hz output; 
+        # set the default frequency of the DDS to 200 kHz:
+        device.frequency.default_value = 200e3  
         
     def quantise_freq(self, data, device):
         if not isinstance(data, np.ndarray):
