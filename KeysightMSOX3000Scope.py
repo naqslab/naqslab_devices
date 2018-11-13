@@ -39,18 +39,32 @@ class KeysightMSOX3000Scope(TriggerableDevice):
     allowed_children = [ScopeChannel]
     
     @set_passed_properties(property_names = {
-        "device_properties":["VISA_name"]}
+        "device_properties":["VISA_name",
+                            "compression","compression_opts","shuffle"]}
         )
     def __init__(self, name, VISA_name, trigger_device, trigger_connection, 
-        num_AI=4, DI=True, trigger_duration=1e-3, **kwargs):
+        num_AI=4, DI=True, trigger_duration=1e-3,
+        compression=None, compression_opts=None, shuffle=False, **kwargs):
         '''VISA_name can be full VISA connection string or NI-MAX alias.
         Trigger Device should be fast clocked device. 
         num_AI sets number of analog input channels, default 4
         DI sets if DI are present, default True
-        trigger_duration set scope trigger duration, default 1ms'''
+        trigger_duration set scope trigger duration, default 1ms
+        Compression of traces in h5 file controlled by:
+        compression: \'lzf\', \'gzip\', None 
+        compression_opts: 0-9 for gzip
+        shuffle: True/False '''
         self.VISA_name = VISA_name
         self.BLACS_connection = VISA_name
         TriggerableDevice.__init__(self,name,trigger_device,trigger_connection,**kwargs)
+        
+        self.compression = compression
+        if (compression == 'gzip') and (compression_opts == None):
+            # set default compression level if needed
+            self.compression_opts = 4
+        else:
+            self.compression_opts = compression_opts
+        self.shuffle = shuffle
         
         self.trigger_duration = trigger_duration
         self.allowed_analog_chan = ['Channel {0:d}'.format(i) for i in range(1,num_AI+1)]
@@ -59,7 +73,8 @@ class KeysightMSOX3000Scope(TriggerableDevice):
             self.allowed_pod2_chan = ['Digital {0:d}'.format(i) for i in range(8,16)]        
         
     def generate_code(self, hdf5_file):
-            
+        '''Automatically called by compiler to write acquisition instructions
+        to h5 file. Configures counters, analog and digital acquisitions.'''    
         Device.generate_code(self, hdf5_file)
         trans = {'pulse':'PUL','edge':'EDG','pos':'P','neg':'N'}
         
@@ -153,6 +168,8 @@ class KeysightMSOX3000Worker(VISAWorker):
     read_waveform_string = ':WAV:DATA?'
     read_counter_string = ':MEAS:{0:s}{1:s}? CHAN{2:d}'
     model_ident = 'MSO-X 3'
+    # some devices need different digitize commands
+    dig_command = ':DIG'
     
     # define result parser
     def analog_waveform_parser(self,raw_waveform_array,y0,dy,yoffset):
@@ -188,10 +205,11 @@ class KeysightMSOX3000Worker(VISAWorker):
         # initialization stuff
         self.connection.write(self.setup_string)
         # initialize smart cache
-        self.smart_cache = {'COUNTERS': None}
+        self.smart_cache = {'COUNTERS': None}            
         
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        '''This only configures counters, if any are defined'''
+        '''This configures counters, if any are defined, 
+        as well as optional compression options for saved data traces.'''
         VISAWorker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
         
         data = None
@@ -199,10 +217,15 @@ class KeysightMSOX3000Worker(VISAWorker):
         send_trigger = False
         with h5py.File(h5file) as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
+            device_props = labscript_utils.properties.get(hdf5_file,device_name,'device_properties')
             if 'COUNTERS' in group:
                 data = group['COUNTERS'][:]
             if len(group):
                 send_trigger = True
+            # get trace compression options
+            self.comp_settings = {'compression':device_props['compression'],
+                            'compression_opts':device_props['compression_opts'],
+                            'shuffle':device_props['shuffle']}
 
         if data is not None:
             #check if refresh needed
@@ -223,7 +246,7 @@ class KeysightMSOX3000Worker(VISAWorker):
             # put scope into single mode
             # necessary since :WAV:DATA? clears data and wait for fresh data
             # when in continuous run mode
-            self.connection.write(':DIG')
+            self.connection.write(self.dig_command)
         
         return self.final_values        
             
@@ -331,7 +354,7 @@ class KeysightMSOX3000Worker(VISAWorker):
             dtypes_digital = np.dtype({'names':['t','values'],'formats':[np.float64,np.uint8]})      
             
             # re-open lock on h5file to save data
-            with h5py.File(self.h5_file,'a') as hdf5_file:
+            with h5py.File(self.h5_file,'r+') as hdf5_file:
                 try:
                     measurements = hdf5_file['/data/traces']
                 except:
@@ -342,21 +365,24 @@ class KeysightMSOX3000Worker(VISAWorker):
                     values = np.empty(len(data[connection]),dtype=dtypes_analog)
                     values['t'] = data['Analog Time']
                     values['values'] = data[connection]
-                    measurements.create_dataset(label, data=values)
+                    measurements.create_dataset(label, data=values, 
+                                                **self.comp_settings)
                     # and save some timing info for reference to labscript time
                     measurements[label].attrs['trigger_time'] = trigger_time
                 for connection,label in pod1_acquisitions:
                     values = np.empty(len(data[connection]),dtype=dtypes_digital)
                     values['t'] = data['Digital Time']
                     values['values'] = data[connection]
-                    measurements.create_dataset(label, data=values)
+                    measurements.create_dataset(label, data=values, 
+                                                **self.comp_settings)
                     # and save some timing info for reference to labscript time
                     measurements[label].attrs['trigger_time'] = trigger_time  
                 for connection,label in pod2_acquisitions:
                     values = np.empty(len(data[connection]),dtype=dtypes_digital)
                     values['t'] = data['Digital Time']
                     values['values'] = data[connection]
-                    measurements.create_dataset(label, data=values)
+                    measurements.create_dataset(label, data=values, 
+                                                **self.comp_settings)
                     # and save some timing info for reference to labscript time
                     measurements[label].attrs['trigger_time'] = trigger_time   
             
@@ -374,7 +400,9 @@ class KeysightMSOX3000Worker(VISAWorker):
         return True
         
     def check_status(self):
-        # Scope don't say anything useful in the stb, using the event register instead
+        '''Periodically called by BLACS to check to status of the scope.'''
+        # Scope don't say anything useful in the stb, 
+        # using the event register instead
         esr = int(self.connection.query('*ESR?'))
 
         # if esr is non-zero, read out the error message and report

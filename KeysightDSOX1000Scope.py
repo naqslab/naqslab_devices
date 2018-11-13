@@ -38,21 +38,5 @@ class KeysightDSOX1000ScopeTab(KeysightMSOX3000ScopeTab):
 class KeysightDSOX1000Worker(KeysightMSOX3000Worker):   
     
     model_ident = 'DSO-X 1'
-    
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        '''This only ensures single trigger mode'''
-        VISAWorker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
-        
-        # DSOX1000 series scopes do not have counters
-        # for speed, going to assume triggering to avoid h5 file read
-        
-        send_trigger = True
-        
-        if send_trigger:            
-            # put scope into single mode
-            # necessary since :WAV:DATA? clears data and wait for fresh data
-            # when in continuous run mode
-            # Our DSO-X1102G does not like :DIG so using :SING instead
-            self.connection.write(':SING')
-        
-        return self.final_values 
+    # Our DSO-X1102G does not like :DIG, so using :SING instead
+    dig_command = ':SING'
