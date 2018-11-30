@@ -66,7 +66,7 @@ class SignalGenerator(VISA):
         # Ensure that frequencies are within bounds:
         if any(data < self.freq_limits[0] )  or any(data > self.freq_limits[1] ):
             raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
-                                'can only have frequencies between {:E}Hz and {:E}Hz'.format(self.freq_limits))
+                                'can only have frequencies between {:E}Hz and {:E}Hz'.format(*self.freq_limits))
         return data, self.scale_factor
         
     def quantise_amp(self,data, device):
@@ -76,7 +76,7 @@ class SignalGenerator(VISA):
         # Ensure that amplitudes are within bounds:        
         if any(data < self.amp_limits[0] )  or any(data > self.amp_limits[1] ):
             raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
-                              'can only have amplitudes between {:.1f}dBm and {:.1f}dBm'.format(self.amp_limits))
+                              'can only have amplitudes between {:.1f}dBm and {:.1f}dBm'.format(*self.amp_limits))
         return data, self.amp_scale_factor
     
     def generate_code(self, hdf5_file):
