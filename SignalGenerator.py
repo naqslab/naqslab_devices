@@ -1,6 +1,11 @@
 #####################################################################
 #                                                                   #
-# /Signal Generator.py                                              #
+# /Signal_Generator.py                                              #
+#                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
 #                                                                   #
 #                                                                   #
 #####################################################################
@@ -14,6 +19,9 @@ from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 from naqslab_devices.VISA import VISA, VISATab, VISAWorker
 from labscript import Device, StaticDDS, StaticAnalogQuantity, config, LabscriptError, set_passed_properties
 import labscript_utils.properties
+
+__version__ = '0.1.0'
+__author__ = ['dihm']
 
 class StaticFreqAmp(StaticDDS):
     """A Static Frequency that supports frequency and amplitude control."""

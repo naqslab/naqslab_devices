@@ -1,6 +1,11 @@
 #####################################################################
 #                                                                   #
-# /KeysightDSOX1000.py                                              #
+# /KeysightDSOX1000Scope.py                                         #
+#                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
 #                                                                   #
 #                                                                   #
 #####################################################################
@@ -13,7 +18,10 @@ from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 from naqslab_devices.VISA import VISAWorker
 from naqslab_devices.TekScope import ScopeChannel
 from naqslab_devices.KeysightMSOX3000Scope import KeysightMSOX3000Scope, KeysightMSOX3000ScopeTab, KeysightMSOX3000Worker
-from labscript import LabscriptError      
+from labscript import LabscriptError
+
+__version__ = '0.1.0'
+__author__ = ['dihm']      
         
       
 @labscript_device              

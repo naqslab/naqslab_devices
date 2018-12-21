@@ -2,6 +2,11 @@
 #                                                                   #
 # /NovaTechDDS440A.py                                               #
 #                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
+#                                                                   #
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
@@ -19,6 +24,9 @@ from naqslab_devices.NovaTechDDS409B_AC import *
 import numpy as np
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
+
+__version__ = '0.1.0'
+__author__ = ['dihm']
         
 @labscript_device
 class NovaTechDDS440A(NovaTechDDS409B_AC):

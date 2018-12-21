@@ -2,6 +2,11 @@
 #                                                                   #
 # /SR865.py                                                         #
 #                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
+#                                                                   #
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
@@ -14,6 +19,9 @@ from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 from naqslab_devices.VISA import VISA, VISATab, VISAWorker
 from labscript import Device, AnalogOut, config, LabscriptError, set_passed_properties
 import labscript_utils.properties
+
+__version__ = '0.1.0'
+__author__ = ['dihm']
 
 sens = np.array([1,500e-3,200e-3,100e-3,50e-3,20e-3,10e-3,5e-3,2e-3,1e-3,
                     500e-6,200e-6,100e-6,50e-6,20e-6,10e-6,5e-6,2e-6,1e-6,

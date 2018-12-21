@@ -1,6 +1,11 @@
 #####################################################################
 #                                                                   #
-# /KeysightMSOX3000.py                                              #
+# /KeysightMSOX3000Scope.py                                         #
+#                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
 #                                                                   #
 #                                                                   #
 #####################################################################
@@ -15,6 +20,9 @@ from naqslab_devices.VISA import VISATab, VISAWorker
 from naqslab_devices.TekScope import ScopeChannel
 from labscript import Device, TriggerableDevice, AnalogIn, DigitalQuantity, config, LabscriptError, set_passed_properties
 import labscript_utils.properties
+
+__version__ = '0.1.0'
+__author__ = ['dihm']
 
 class CounterScopeChannel(ScopeChannel):
     """Labscript device that handles acquisition stuff.

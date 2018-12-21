@@ -17,6 +17,8 @@ check_version('labscript_devices','2.2.0','3')
     
 __version__ = '0.0.2'
 
+__author__ = ['dihm']
+
 
 
 

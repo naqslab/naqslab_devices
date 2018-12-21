@@ -2,6 +2,11 @@
 #                                                                   #
 # /RS_SMF100A.py                                                    #
 #                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
+#                                                                   #
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
@@ -12,6 +17,9 @@ if PY2:
 from naqslab_devices.SignalGenerator import *
 from labscript import LabscriptError
 import labscript_utils.properties
+
+__version__ = '0.1.0'
+__author__ = ['dihm']
         
 @labscript_device              
 class RS_SMF100A(SignalGenerator):

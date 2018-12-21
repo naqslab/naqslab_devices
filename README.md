@@ -1,16 +1,38 @@
 # README #
 
-This repository contains various 3rd-party device implementations for use with the [labscript suite](https://bitbucket.org/labscript_suite) experiment control system.
+This repository contains various 3rd-party device implementations for use with 
+the [labscript suite](https://bitbucket.org/labscript_suite) experiment control 
+system.
+
+Devices include:
+* Novatech 409B & 409B-AC DDS
+* Novatech 440A DDS
+* Stanford Research 865 Lockin Amplifier
+* Tektronix TDS series oscilloscopes
+* Keysight MSO/DSO X series oscilloscopes
+* Various Legacy CW RF Signal Generators
+    * Rhode & Schwarz SMF 100A
+    * Rhode & Schwarz SMHU
+    * HP 8642A
+    * HP 8643A
+    
+The above code is designed to be modular allowing for easy addition of other 
+models, particularly oscilloscopes and CW Signal Generators.
 
 ### How do I get set up? ###
 
-Clone this repository into the labscript suite directory. Invoke in labscript scripts like other labscript\_devices
+The following works for labscript_devices before version 2.2.0.
+
+Clone this repository into the labscript suite directory. Invoke in labscript 
+scripts like other labscript\_devices
 ```python
 from naqslab_devices.TekScope import TekScope, ScopeChannel
 ```
 
-As of now BLACS will only look in the labscript\_devices repository for device classes. 
-A quick workaround for this until a more permanant solution is implemented is this diff applied to \_\_init\_\_.py in labscript\_devices
+As of now BLACS will only look in the labscript\_devices repository for 
+device classes. 
+A quick workaround for this until a more permanant solution is implemented 
+is this diff applied to \_\_init\_\_.py in labscript\_devices
 
 ```diff
 @@ -11,6 +11,8 @@
@@ -45,8 +67,80 @@ A quick workaround for this until a more permanant solution is implemented is th
              return self.registered_classes[name]
 
 ```
+Post version 2.2.0 requires the following changes
+in order to allow for arbitrary subfolders in the naqslab repo.
 
-Usage of individual devices varies somewhat. Here is an example connectiontable showing some of their instantiation
+```diff
+@@ -68,6 +68,9 @@
+ The old method may be deprecated in the future.
+ """
+ 
++lab_repo = 'naqslab_devices'
++lab_repo_dir = os.path.join(labscript_suite_install_dir,lab_repo)
++
+ 
+ class ClassRegister(object):
+     """A register for looking up classes by module name.  Provides a
+@@ -105,18 +108,21 @@
+             # Ensure the module's code has run (this does not re-import it if it is already in sys.modules)
+             importlib.import_module('.' + name, __name__)
+         except ImportError:
+-            msg = """No %s registered for a device named %s. Ensure that there is a file
+-                'register_classes.py' with a call to
+-                labscript_devices.register_classes() for this device, with the device
+-                name passed to register_classes() matching the name of the device class.
++            try: # hack to use local repo
++                importlib.import_module('.' + name, lab_repo)
++            except ImportError:
++                msg = """No %s registered for a device named %s. Ensure that there is a file
++                    'register_classes.py' with a call to
++                    labscript_devices.register_classes() for this device, with the device
++                    name passed to register_classes() matching the name of the device class.
+ 
+-                Fallback method of looking for and importing a module in
+-                labscript_devices with the same name as the device also failed. If using
+-                this method, check that the module exists, has the same name as the
+-                device class, and can be imported with no errors. Import error
+-                was:\n\n"""
+-            msg = dedent(msg) % (self.instancename, name) + traceback.format_exc()
+-            raise ImportError(msg)
++                    Fallback method of looking for and importing a module in
++                    labscript_devices with the same name as the device also failed. If using
++                    this method, check that the module exists, has the same name as the
++                    device class, and can be imported with no errors. Import error
++                    was:\n\n"""
++                msg = dedent(msg) % (self.instancename, name) + traceback.format_exc()
++                raise ImportError(msg)
+         # Class definitions in that module have executed now, check to see if class is in our register:
+         try:
+             return self.registered_classes[name]
+@@ -250,6 +256,17 @@
+             module_name = 'labscript_devices._register_classes_script_%d' % module_num
+             _ = imp.load_module(module_name, fp, pathname, desc)
+             module_num += 1
++    
++    # hack for lab repo to use new arbitrary subfolders        
++    for folder, _, filenames in os.walk(lab_repo_dir):
++        if 'register_classes.py' in filenames:
++            # The module name is the path to the file, relative to the labscript suite
++            # install directory:
++            # Open the file using the import machinery, and import it as module_name.
++            fp, pathname, desc = imp.find_module('register_classes', [folder])
++            module_name = 'naqslab_devices._register_classes_script_%d' % module_num
++            _ = imp.load_module(module_name, fp, pathname, desc)
++            module_num += 1
+ 
+ 
+ if __name__ == '__main__':
+
+
+```
+
+#### Usage ####
+
+Usage of individual devices varies somewhat. 
+Here is an example connectiontable showing some of their instantiation with
+labscript_devices < 2.2.0.
 ```python
 from labscript import *
 from naqslab_devices.PulseBlasterESRPro300 import PulseBlasterESRPro300

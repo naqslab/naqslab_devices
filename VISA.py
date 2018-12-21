@@ -2,6 +2,11 @@
 #                                                                   #
 # /VISA.py                                                          #
 #                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
+#                                                                   #
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
@@ -13,6 +18,9 @@ from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 
 from labscript import Device, LabscriptError, set_passed_properties
 import labscript_utils.properties
+
+__version__ = '0.1.0'
+__author__ = ['dihm']
       
 @labscript_device              
 class VISA(Device):
