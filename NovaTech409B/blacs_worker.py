@@ -1,0 +1,306 @@
+#####################################################################
+#                                                                   #
+# /naqslab_devices/NovaTech409B/blacs_worker.py                     #
+#                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of naqslab_devices,                             #
+# and is licensed under the                                         #
+# Simplified BSD License. See the license.txt file in the root of   #
+# the project for the full license.                                 #
+# Source borrows heavily from labscript_devices/NovaTechDDS9m       #
+#                                                                   #
+#####################################################################
+from __future__ import division, unicode_literals, print_function, absolute_import
+from labscript_utils import PY2
+if PY2:
+    str = unicode
+
+from labscript import LabscriptError
+from blacs.tab_base_classes import Worker
+
+import time
+import numpy as np
+import serial
+import labscript_utils.h5_lock, h5py
+
+       
+class NovaTech409B_ACWorker(Worker):
+    def init(self):
+        #global serial; import serial
+        #global h5py; import labscript_utils.h5_lock, h5py
+        self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': '',
+                                'CURRENT_DATA':None}
+        self.baud_dict = {9600:b'78', 19200:b'3c', 38400:b'1e',57600:b'14',115200:b'0a'}
+        
+        # conversion dictionaries for program_static from 
+        # program_manual                      
+        self.conv = {'freq':10**(-6),'amp':1023.0,'phase':16384.0/360.0}
+        # and from transition_to_buffered
+        self.conv_buffered = {'freq':10**(-7),'amp':1,'phase':1}
+        
+        self.connection = serial.Serial(self.com_port, baudrate = self.baud_rate, timeout=0.1)
+        self.connection.readlines()
+        
+        # to configure baud rate, must determine current device baud rate
+        # first check desired, since it's most likely
+        connected, response = self.check_connection()
+        if not connected:
+            # not already set
+            bauds = list(self.baud_dict)
+            if self.baud_rate in bauds:
+                bauds.remove(self.baud_rate)
+            else:
+                raise LabscriptError('%d baud rate not supported by Novatech 409B' % self.baud_rate)
+                
+            # iterate through other baud-rates to find current
+            for rate in bauds:
+                self.connection.baudrate = rate
+                connected, response = self.check_connection()
+                if connected:
+                    # found it!
+                    break
+            
+            # now we can set the desired baud rate
+            baud_string = b'Kb %s\r\n' % (self.baud_dict[self.baud_rate])
+            self.connection.write(baud_string)
+            # ensure command finishes before switching rates in pyserial
+            time.sleep(0.1)
+            self.connection.baudrate = self.baud_rate
+            connected, response = self.check_connection()
+            if not connected:
+                raise LabscriptError('Error: Failed to execute command %s' % baud_string)           
+        
+        self.connection.write(b'e d\r\n')
+        response = self.connection.readline()
+        if response == b'e d\r\n':
+            # if echo was enabled, then the command to disable it echos back at us!
+            response = self.connection.readline()
+        if response != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: "e d". Cannot connect to the device.')
+        
+        self.connection.write(b'I a\r\n')
+        if self.connection.readline() != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: "I a"')
+        
+        self.connection.write(b'm 0\r\n')
+        if self.connection.readline() != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: "m 0"')
+        
+        # populate the 'CURRENT_DATA' dictionary    
+        self.check_remote_values()
+        
+    def check_connection(self):
+        '''Sends non-command and tests for correct response
+        returns tuple of connection state and reponse string'''
+        # check twice since false positive possible on first check
+        # use readlines in case echo is on
+        self.connection.write(b'\r\n')
+        self.connection.readlines()       
+        self.connection.write(b'\r\n')
+        try:
+            response = self.connection.readlines()[-1]
+            connected = response == b'OK\r\n'
+        except IndexError:
+            # empty response, probably not connected
+            connected = False
+            response = b''
+        
+        return connected, response
+        
+    def check_remote_values(self):
+        # Get the currently output values:
+        self.connection.write(b'QUE\r\n')
+        try:
+            response = [self.connection.readline() for i in range(5)]
+        except socket.timeout:
+            raise Exception('Failed to execute command "QUE". Cannot connect to device.')
+        results = {}
+        for i, line in enumerate(response[:4]):
+            results['channel %d' % i] = {}
+            freq, phase, amp, ignore, ignore, ignore, ignore = line.split()
+            # Convert hex multiple of 0.1 Hz to MHz:
+            results['channel %d' % i]['freq'] = float(int(freq,16))/10.0
+            # Convert hex to int:
+            results['channel %d' % i]['amp'] = int(amp,16)/1023.0
+            # Convert hex fraction of 16384 to degrees:
+            results['channel %d' % i]['phase'] = int(phase,16)*360/16384.0
+            
+            self.smart_cache['CURRENT_DATA'] = results
+        return results
+        
+    def program_manual(self,front_panel_values):
+        for i in range(4):    
+            # and for each subchnl in the DDS,
+            for subchnl in ['freq','amp','phase']:
+                # don't program if setting is the same
+                if self.smart_cache['CURRENT_DATA']['channel %d' % i][subchnl] == front_panel_values['channel %d' % i][subchnl]:
+                    continue       
+                # Program the sub channel
+                self.program_static(i,subchnl,
+                    front_panel_values['channel %d' % i][subchnl]*self.conv[subchnl])
+                # Now that a static update has been done, 
+                # we'd better invalidate the saved STATIC_DATA for the channel:
+                self.smart_cache['STATIC_DATA'] = None
+        return self.check_remote_values()
+
+    def program_static(self,channel,type,value):            
+        if type == 'freq':
+            command = b'F%d %.7f\r\n' % (channel,value)
+            self.connection.write(command)
+            if self.connection.readline() != b'OK\r\n':
+                raise Exception('Error: Failed to execute command: %s' % command)
+        elif type == 'amp':
+            command = b'V%d %d\r\n' % (channel,int(value))
+            self.connection.write(command)
+            if self.connection.readline() != b'OK\r\n':
+                raise Exception('Error: Failed to execute command: %s' % command)
+        elif type == 'phase':
+            command = b'P%d %d\r\n' % (channel,int(value))
+            self.connection.write(command)
+            if self.connection.readline() != b'OK\r\n':
+                raise Exception('Error: Failed to execute command: %s' % command)
+        else:
+            raise TypeError(type)
+     
+    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):        
+        # Store the initial values in case we have to abort and restore them:
+        self.initial_values = initial_values
+        # Store the final values for use during transition_to_static:
+        self.final_values = initial_values
+        static_data = None
+        table_data = None
+        with h5py.File(h5file) as hdf5_file:
+            group = hdf5_file['/devices/'+device_name]
+            # If there are values to set the unbuffered outputs to, set them now:
+            if 'STATIC_DATA' in group:
+                static_data = group['STATIC_DATA'][:][0]
+            # Now program the buffered outputs:
+            if 'TABLE_DATA' in group:
+                table_data = group['TABLE_DATA'][:]
+                
+        if static_data is not None:
+            data = static_data
+            if fresh or data != self.smart_cache['STATIC_DATA']:
+                self.smart_cache['STATIC_DATA'] = data
+                                
+                # need to infer which channels to program
+                num_chan = len(data)//3
+                channels = [int(name[-1]) for name in data.dtype.names[0:num_chan]]
+                
+                for i in channels:
+                    for subchnl in ['freq','amp','phase']:
+                        curr_value = self.smart_cache['CURRENT_DATA']['channel %d' % i][subchnl]*self.conv[subchnl]
+                        value = data[subchnl+str(i)]*self.conv_buffered[subchnl]
+                        if value == curr_value:
+                            continue
+                        self.program_static(i,subchnl,value)
+                        self.final_values['channel %d' % i][subchnl] = value/self.conv[subchnl]
+                    
+        # Now program the buffered outputs:
+        if table_data is not None:
+            data = table_data
+            for i, line in enumerate(data):
+                st = time.time()
+                oldtable = self.smart_cache['TABLE_DATA']
+                for ddsno in range(2):
+                    if fresh or i >= len(oldtable) or (line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]) != (oldtable[i]['freq%d'%ddsno],oldtable[i]['phase%d'%ddsno],oldtable[i]['amp%d'%ddsno]):
+                        self.connection.write(b't%d %04x %08x,%04x,%04x,ff\r\n'%(ddsno, i,line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]))
+                        self.connection.readline()
+                et = time.time()
+                tt=et-st
+                self.logger.debug('Time spent on line %s: %s' % (i,tt))
+            # Store the table for future smart programming comparisons:
+            try:
+                self.smart_cache['TABLE_DATA'][:len(data)] = data
+                self.logger.debug('Stored new table as subset of old table')
+            except: # new table is longer than old table
+                self.smart_cache['TABLE_DATA'] = data
+                self.logger.debug('New table is longer than old table and has replaced it.')
+                
+            # Get the final values of table mode so that the GUI can
+            # reflect them after the run:
+            self.final_values['channel 0'] = {}
+            self.final_values['channel 1'] = {}
+            self.final_values['channel 0']['freq'] = data[-1]['freq0']/10.0
+            self.final_values['channel 1']['freq'] = data[-1]['freq1']/10.0
+            self.final_values['channel 0']['amp'] = data[-1]['amp0']/1023.0
+            self.final_values['channel 1']['amp'] = data[-1]['amp1']/1023.0
+            self.final_values['channel 0']['phase'] = data[-1]['phase0']*360/16384.0
+            self.final_values['channel 1']['phase'] = data[-1]['phase1']*360/16384.0
+            
+            # Transition to table mode:
+            self.connection.write(b'm t\r\n')
+            self.connection.readline()
+            if self.update_mode == 'synchronous':
+                # Transition to hardware synchronous updates:
+                self.connection.write(b'I e\r\n')
+                self.connection.readline()
+                # We are now waiting for a rising edge to trigger the output
+                # of the second table pair (first of the experiment)
+            elif self.update_mode == 'asynchronous':
+                # Output will now be updated on falling edges.
+                pass
+            else:
+                raise ValueError('invalid update mode %s' % str(self.update_mode))
+                
+            
+        return self.final_values
+    
+    def abort_transition_to_buffered(self):
+        return self.transition_to_manual(True)
+        
+    def abort_buffered(self):
+        # TODO: untested
+        return self.transition_to_manual(True)
+    
+    def transition_to_manual(self,abort = False):
+        self.connection.write(b'm 0\r\n')
+        if self.connection.readline() != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: "m 0"')
+        self.connection.write(b'I a\r\n')
+        if self.connection.readline() != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: "I a"')
+        if abort:
+            # If we're aborting the run, then we need to reset DDSs 2 and 3 to their initial values.
+            # 0 and 1 will already be in their initial values. We also need to invalidate the smart
+            # programming cache for them.
+            values = self.initial_values
+            DDSs = [2,3]
+            self.smart_cache['STATIC_DATA'] = None
+        else:
+            # If we're not aborting the run, then we need to set DDSs 0 and 1 to their final values.
+            # 2 and 3 will already be in their final values.
+            values = self.final_values
+            DDSs = [0,1]
+            
+        # only program the channels that we need to
+        for channel in values:
+            ddsnum = int(channel.split(' ')[-1])
+            if ddsnum not in DDSs:
+                continue
+            for subchnl in ['freq','amp','phase']:            
+                self.program_static(ddsnum,subchnl,values[channel][subchnl]*self.conv[subchnl])
+            
+        # return True to indicate we successfully transitioned back to manual mode
+        return True
+                     
+    def shutdown(self):
+        self.connection.close()        
+    
+class NovaTech409BWorker(NovaTech409B_ACWorker):
+    
+    def transition_to_manual(self,abort = False):
+        if abort:
+            # If we're aborting the run, then we need to reset DDSs to their initial values.
+            # We also need to invalidate the smart programming cache for them.
+            self.smart_cache['STATIC_DATA'] = None
+            for channel in self.initial_values:
+                ddsnum = int(channel.split(' ')[-1])
+                for subchnl in ['freq','amp','phase']:
+                    self.program_static(ddsnum,subchnl,self.initial_values[channel][subchnl]*self.conv[subchnl])
+        else:
+            # if not aborting, final values already set so do nothing
+            pass
+        # return True to indicate we successfully transitioned back to manual mode
+        return True
