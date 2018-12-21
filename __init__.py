@@ -5,9 +5,17 @@ from labscript_utils import PY2
 if PY2:
     str = unicode
     
+try:
+    from labscript_utils import check_version
+except ImportError:
+    raise ImportError('Require labscript_utils > 2.1.0')
+    
 import labscript_devices
     
-__version__ = '0.0.1'
+# require labscript_devices with arbitrary subfolder support
+check_version('labscript_devices','2.2.0','3')
+    
+__version__ = '0.0.2'
 
 
 
