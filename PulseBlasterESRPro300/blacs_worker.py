@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /PulseblasterESRpro500.py                                         #
+# /naqslab_devices/PulseblasterESRpro300/blacs_worker.py            #
 #                                                                   #
 # Copyright 2013, Monash University                                 #
 #                                                                   #
@@ -10,9 +10,12 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from __future__ import division, unicode_literals, print_function, absolute_import
+from labscript_utils import PY2
+if PY2:
+    str = unicode 
 
-from labscript_devices import labscript_device, BLACS_tab, BLACS_worker, runviewer_parser
-from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS, Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker, PulseBlaster_No_DDS_Parser
+from labscript_devices.PulseBlaster_No_DDS import PulseblasterNoDDSWorker
 
 # note that ESR-Pro boards only have 21 channels
 # bits 21-23 are short pulse control bits
@@ -24,32 +27,10 @@ from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS, Pulseblas
 # FOUR_PERIOD  |    100
 # FIVE_PERIOD  |    101
 # SIX_PERIOD   |    110  not defined in manual, defined in spinapi.h
-# ON           |    111
-
-@labscript_device
-class PulseBlasterESRPro300(PulseBlaster_No_DDS):
-    description = 'SpinCore PulseBlaster ESR-PRO-300'
-    clock_limit = 30.0e6 # can probably go faster
-    clock_resolution = 4e-9
-    n_flags = 24
-
-
-@BLACS_tab    
-class pulseblasteresrpro300(Pulseblaster_No_DDS_Tab):
-    # Capabilities
-    num_DO = 24
-    def __init__(self,*args,**kwargs):
-        self.device_worker_class = PulseblasterESRPro300Worker 
-        Pulseblaster_No_DDS_Tab.__init__(self,*args,**kwargs)
+# ON           |    111    
     
-    
-@BLACS_worker
-class PulseblasterESRPro300Worker(PulseblasterNoDDSWorker):
+class PulseBlasterESRPro300Worker(PulseblasterNoDDSWorker):
     core_clock_freq = 300.0
     ESRPro = True
-    
-@runviewer_parser
-class PulseBlasterESRPro300_Parser(PulseBlaster_No_DDS_Parser):
-    num_flags = 24 # only 21 usable, flags 21-23 used for short pulses
     
      
