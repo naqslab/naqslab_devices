@@ -5,6 +5,7 @@ the [labscript suite](https://bitbucket.org/labscript_suite) experiment control
 system.
 
 Devices include:
+
 * Novatech 409B & 409B-AC DDS
 * Novatech 440A DDS
 * Stanford Research 865 Lockin Amplifier
