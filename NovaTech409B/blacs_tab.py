@@ -64,11 +64,13 @@ class NovaTech409B_ACTab(DeviceTab):
             self.baud_rate = 19200
         
         self.update_mode = connection_object.properties.get('update_mode', 'synchronous')
+        self.phase_mode = connection_object.properties.get('phase_mode', 'default')
         
         # Create and set the primary worker
         worker_init_kwargs = {'com_port': self.com_port,
                               'baud_rate': self.baud_rate,
-                              'update_mode': self.update_mode}
+                              'update_mode': self.update_mode,
+                              'phase_mode': self.phase_mode}
         self.create_worker("main_worker",
                            self.device_worker_class,
                            worker_init_kwargs)

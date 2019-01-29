@@ -22,6 +22,7 @@ from blacs.tab_base_classes import Worker
 import time
 import numpy as np
 import serial
+import socket
 import labscript_utils.h5_lock, h5py
 
        
@@ -38,6 +39,13 @@ class NovaTech409B_ACWorker(Worker):
         self.conv = {'freq':10**(-6),'amp':1023.0,'phase':16384.0/360.0}
         # and from transition_to_buffered
         self.conv_buffered = {'freq':10**(-7),'amp':1,'phase':1}
+        
+        # set phase mode method
+        phase_mode_commands = {
+            'default': b'm 0',
+            'aligned': b'm a',
+            'continuous': b'm n'}
+        self.phase_mode_command = phase_mode_commands[self.phase_mode]
         
         self.connection = serial.Serial(self.com_port, baudrate = self.baud_rate, timeout=0.1)
         self.connection.readlines()
@@ -83,9 +91,9 @@ class NovaTech409B_ACWorker(Worker):
         if self.connection.readline() != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "I a"')
         
-        self.connection.write(b'm 0\r\n')
+        self.connection.write(b'%s\r\n'%self.phase_mode_command)
         if self.connection.readline() != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: "m 0"')
+            raise Exception('Error: Failed to execute command: "%s"'%self.phase_mode.decode('utf8'))
         
         # populate the 'CURRENT_DATA' dictionary    
         self.check_remote_values()
@@ -147,21 +155,15 @@ class NovaTech409B_ACWorker(Worker):
     def program_static(self,channel,type,value):            
         if type == 'freq':
             command = b'F%d %.7f\r\n' % (channel,value)
-            self.connection.write(command)
-            if self.connection.readline() != b'OK\r\n':
-                raise Exception('Error: Failed to execute command: %s' % command)
         elif type == 'amp':
             command = b'V%d %d\r\n' % (channel,int(value))
-            self.connection.write(command)
-            if self.connection.readline() != b'OK\r\n':
-                raise Exception('Error: Failed to execute command: %s' % command)
         elif type == 'phase':
             command = b'P%d %d\r\n' % (channel,int(value))
-            self.connection.write(command)
-            if self.connection.readline() != b'OK\r\n':
-                raise Exception('Error: Failed to execute command: %s' % command)
         else:
             raise TypeError(type)
+        self.connection.write(command)
+        if self.connection.readline() != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: %s' % command.decode('utf8'))
      
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):        
         # Store the initial values in case we have to abort and restore them:
@@ -255,9 +257,9 @@ class NovaTech409B_ACWorker(Worker):
         return self.transition_to_manual(True)
     
     def transition_to_manual(self,abort = False):
-        self.connection.write(b'm 0\r\n')
+        self.connection.write(b'%s\r\n'%self.phase_mode_command)
         if self.connection.readline() != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: "m 0"')
+            raise Exception('Error: Failed to execute command: "%s"'%self.phase_mode_command.decode('utf8'))
         self.connection.write(b'I a\r\n')
         if self.connection.readline() != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "I a"')

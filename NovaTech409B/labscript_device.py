@@ -32,21 +32,25 @@ class NovaTech409B_AC(IntermediateDevice):
 
     @set_passed_properties(
         property_names = {'connection_table_properties': ['update_mode',
-                                    'synchronous_first_line_repeat']}
+                            'synchronous_first_line_repeat', 'phase_mode']}
         )
     def __init__(self, name, parent_device, 
                  com_port = "", baud_rate=19200, 
                  update_mode='synchronous', synchronous_first_line_repeat=False, 
-                 **kwargs):
+                 phase_mode='default', **kwargs):
         '''Labscript device class for NovaTech 409B-AC variant DDS.
         This device has two dynamic channels (0,1) and two static channels (2,3).'''
 
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
         self.BLACS_connection = '%s,%s' % (com_port, str(baud_rate))
         if not update_mode in ['synchronous', 'asynchronous']:
-            raise LabscriptError('update_mode must be \'synchronous\' or \'asynchronous\'')            
+            raise LabscriptError('update_mode must be \'synchronous\' or \'asynchronous\'')
+            
+        if not phase_mode in ['default', 'aligned', 'continuous']:
+            raise LabscriptError('phase_mode must be \'default\', \'aligned\' or \'continuous\'')
         
         self.update_mode = update_mode
+        self.phase_mode = phase_mode
         self.synchronous_first_line_repeat = synchronous_first_line_repeat        
         
     def add_device(self, device):
@@ -221,14 +225,23 @@ class NovaTech409B(NovaTech409B_AC):
     allowed_children = [StaticDDS]
     clock_limit = 1
     # this is not a triggerable device
+    
+    @set_passed_properties(
+        property_names = {'connection_table_properties': ['phase_mode']})
 
     def __init__(self, name,
-                 com_port = "", baud_rate=19200, **kwargs):
+                 com_port = "", baud_rate=19200, 
+                 phase_mode='default', **kwargs):
         '''Labscript class for NovaTech 409B DDS.
         This device has four static DDS output channels.'''
 
         Device.__init__(self, name, None, com_port, **kwargs)
-        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))                   
+        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))
+        
+        if not phase_mode in ['default', 'aligned', 'continuous']:
+            raise LabscriptError('phase_mode must be \'default\', \'aligned\' or \'continuous\'')
+            
+        self.phase_mode = phase_mode
         
     def generate_code(self, hdf5_file):
         DDSs = {}
