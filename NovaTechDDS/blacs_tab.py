@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /naqslab_devices/NovaTech409B/blacs_tab.py                        #
+# /naqslab_devices/NovaTechDDS/blacs_tab.py                         #
 #                                                                   #
 # Copyright 2018, David Meyer                                       #
 #                                                                   #
@@ -22,7 +22,7 @@ class NovaTech409B_ACTab(DeviceTab):
 
     def __init__(self,*args,**kwargs):
         if not hasattr(self,'device_worker_class'):
-            self.device_worker_class = "naqslab_devices.NovaTech409B.blacs_worker.NovaTech409B_ACWorker"
+            self.device_worker_class = "naqslab_devices.NovaTechDDS.blacs_worker.NovaTech409B_ACWorker"
         DeviceTab.__init__(self,*args,**kwargs)
 
     def initialise_GUI(self):        
@@ -84,5 +84,60 @@ class NovaTech409B_ACTab(DeviceTab):
 class NovaTech409BTab(NovaTech409B_ACTab):
     
     def __init__(self,*args,**kwargs):
-        self.device_worker_class = "naqslab_devices.NovaTech409B.blacs_worker.NovaTech409BWorker"
+        self.device_worker_class = "naqslab_devices.NovaTechDDS.blacs_worker.NovaTech409BWorker"
         NovaTech409B_ACTab.__init__(self,*args,**kwargs)
+
+class NovaTech440ATab(NovaTech409B_ACTab):
+    
+    def __init__(self,*args,**kwargs):
+        if not hasattr(self,'device_worker_class'):
+            self.device_worker_class = "naqslab_devices.NovaTechDDS.blacs_worker.NovaTech440AWorker"
+        DeviceTab.__init__(self,*args,**kwargs)
+        
+    def initialise_GUI(self):        
+        # Capabilities
+        self.base_units =    {'freq':'Hz',               'phase':'Degrees'}
+        self.base_min =      {'freq':200e3,              'phase':0}
+        self.base_max =      {'freq':402.653183*10.0**6, 'phase':360}
+        self.base_step =     {'freq':10**6,              'phase':1}
+        self.base_decimals = {'freq':0,                  'phase':3} # TODO: find out what the phase precision is!
+        self.num_DDS = 1
+        
+        # Create DDS Output objects
+        dds_prop = {}
+        for i in range(self.num_DDS): # only 1 DDS output
+            dds_prop['channel %d' % i] = {}
+            for subchnl in ['freq', 'phase']:
+                dds_prop['channel %d' % i][subchnl] = {'base_unit':self.base_units[subchnl],
+                                                     'min':self.base_min[subchnl],
+                                                     'max':self.base_max[subchnl],
+                                                     'step':self.base_step[subchnl],
+                                                     'decimals':self.base_decimals[subchnl]
+                                                    }
+        # Create the output objects    
+        self.create_dds_outputs(dds_prop)        
+        # Create widgets for output objects
+        dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
+        # and auto place the widgets in the UI
+        self.auto_place_widgets(("DDS Outputs",dds_widgets))
+        
+        connection_object = self.settings['connection_table'].find_by_name(self.device_name)
+        
+        # Store the COM port to be used
+        blacs_connection =  str(connection_object.BLACS_connection)
+        if ',' in blacs_connection:
+            self.com_port, baud_rate = blacs_connection.split(',')
+            self.baud_rate = int(baud_rate)
+        else:
+            self.com_port = blacs_connection
+            self.baud_rate = 19200
+        
+        # Create and set the primary worker
+        self.create_worker("main_worker",self.device_worker_class,{'com_port':self.com_port,
+                                                              'baud_rate': self.baud_rate
+                                                              })
+        self.primary_worker = "main_worker"
+
+        # Set the capabilities of this device
+        self.supports_remote_value_check(True)
+        self.supports_smart_programming(True)

@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /naqslab_devices/NovaTech409B/register_classes.py                 #
+# /naqslab_devices/NovaTechDDS/__init__.py                          #
 #                                                                   #
 # Copyright 2017, Christopher Billington, David Meyer               #
 #                                                                   #
@@ -10,16 +10,20 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-import labscript_devices
+from __future__ import division, unicode_literals, print_function, absolute_import
+from labscript_utils import PY2
+if PY2:
+    str = unicode
 
-labscript_devices.register_classes(
-    'NovaTech409B',
-    BLACS_tab='naqslab_devices.NovaTech409B.blacs_tab.NovaTech409BTab',
-    runviewer_parser='naqslab_devices.NovaTech409B.runviewer_parser.NovaTech409BParser',
-)
+from labscript_devices import deprecated_import_alias
 
-labscript_devices.register_classes(
-    'NovaTech409B_AC',
-    BLACS_tab='naqslab_devices.NovaTech409B.blacs_tab.NovaTech409B_ACTab',
-    runviewer_parser='naqslab_devices.NovaTech409B.runviewer_parser.NovaTech409B_ACParser',
-)
+
+# For backwards compatibility with old experiment scripts:
+NovaTech409B = deprecated_import_alias(
+    "naqslab_devices.NovaTechDDS.labscript_device.NovaTech409B")
+    
+NovaTech409B_AC = deprecated_import_alias(
+    "naqslab_devices.NovaTechDDS.labscript_device.NovaTech409B_AC")
+    
+NovaTech440A = deprecated_import_alias(
+    "naqslab_devices.NovaTechDDS.labscript_device.NovaTech440A")

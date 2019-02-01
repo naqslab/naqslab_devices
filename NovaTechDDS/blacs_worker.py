@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /naqslab_devices/NovaTech409B/blacs_worker.py                     #
+# /naqslab_devices/NovaTechDDS/blacs_worker.py                      #
 #                                                                   #
 # Copyright 2018, David Meyer                                       #
 #                                                                   #
@@ -34,11 +34,17 @@ class NovaTech409B_ACWorker(Worker):
                                 'CURRENT_DATA':None}
         self.baud_dict = {9600:b'78', 19200:b'3c', 38400:b'1e',57600:b'14',115200:b'0a'}
         
+        # total number of DDS channels on device & channel properties
+        self.N_chan = 4
+        self.subchnls = ['freq','amp','phase']
+        
         # conversion dictionaries for program_static from 
         # program_manual                      
         self.conv = {'freq':10**(-6),'amp':1023.0,'phase':16384.0/360.0}
         # and from transition_to_buffered
         self.conv_buffered = {'freq':10**(-7),'amp':1,'phase':1}
+        # read from device conversion, basically conv/conv_buffered
+        self.read_conv = {'freq':1/10.0,'amp':1/1023.0,'phase':360.0/16384.0}
         
         # set phase mode method
         phase_mode_commands = {
@@ -120,27 +126,28 @@ class NovaTech409B_ACWorker(Worker):
         # Get the currently output values:
         self.connection.write(b'QUE\r\n')
         try:
-            response = [self.connection.readline() for i in range(5)]
+            response = [self.connection.readline() for i in range(self.N_chan+1)]
         except socket.timeout:
             raise Exception('Failed to execute command "QUE". Cannot connect to device.')
         results = {}
-        for i, line in enumerate(response[:4]):
+        for i, line in enumerate(response[:self.N_chan]):
             results['channel %d' % i] = {}
             freq, phase, amp, ignore, ignore, ignore, ignore = line.split()
-            # Convert hex multiple of 0.1 Hz to MHz:
-            results['channel %d' % i]['freq'] = float(int(freq,16))/10.0
+            # Convert hex multiple of 0.1 Hz to Hz:
+            results['channel %d' % i]['freq'] = float(int(freq,16))*self.read_conv['freq']
             # Convert hex to int:
-            results['channel %d' % i]['amp'] = int(amp,16)/1023.0
+            results['channel %d' % i]['amp'] = int(amp,16)*self.read_conv['amp']
             # Convert hex fraction of 16384 to degrees:
-            results['channel %d' % i]['phase'] = int(phase,16)*360/16384.0
+            results['channel %d' % i]['phase'] = int(phase,16)*self.read_conv['phase']
             
             self.smart_cache['CURRENT_DATA'] = results
         return results
         
     def program_manual(self,front_panel_values):
-        for i in range(4):    
+        for i in range(self.N_chan):
+            print(self.subchnls)    
             # and for each subchnl in the DDS,
-            for subchnl in ['freq','amp','phase']:
+            for subchnl in self.subchnls:
                 # don't program if setting is the same
                 if self.smart_cache['CURRENT_DATA']['channel %d' % i][subchnl] == front_panel_values['channel %d' % i][subchnl]:
                     continue       
@@ -191,7 +198,7 @@ class NovaTech409B_ACWorker(Worker):
                 channels = [int(name[-1]) for name in data.dtype.names[0:num_chan]]
                 
                 for i in channels:
-                    for subchnl in ['freq','amp','phase']:
+                    for subchnl in self.subchnls:
                         curr_value = self.smart_cache['CURRENT_DATA']['channel %d' % i][subchnl]*self.conv[subchnl]
                         value = data[subchnl+str(i)]*self.conv_buffered[subchnl]
                         if value == curr_value:
@@ -224,12 +231,12 @@ class NovaTech409B_ACWorker(Worker):
             # reflect them after the run:
             self.final_values['channel 0'] = {}
             self.final_values['channel 1'] = {}
-            self.final_values['channel 0']['freq'] = data[-1]['freq0']/10.0
-            self.final_values['channel 1']['freq'] = data[-1]['freq1']/10.0
-            self.final_values['channel 0']['amp'] = data[-1]['amp0']/1023.0
-            self.final_values['channel 1']['amp'] = data[-1]['amp1']/1023.0
-            self.final_values['channel 0']['phase'] = data[-1]['phase0']*360/16384.0
-            self.final_values['channel 1']['phase'] = data[-1]['phase1']*360/16384.0
+            self.final_values['channel 0']['freq'] = data[-1]['freq0']*self.read_conv['freq']
+            self.final_values['channel 1']['freq'] = data[-1]['freq1']*self.read_conv['freq']
+            self.final_values['channel 0']['amp'] = data[-1]['amp0']*self.read_conv['amp']
+            self.final_values['channel 1']['amp'] = data[-1]['amp1']*self.read_conv['amp']
+            self.final_values['channel 0']['phase'] = data[-1]['phase0']*self.read_conv['phase']
+            self.final_values['channel 1']['phase'] = data[-1]['phase1']*self.read_conv['phase']
             
             # Transition to table mode:
             self.connection.write(b'm t\r\n')
@@ -281,7 +288,7 @@ class NovaTech409B_ACWorker(Worker):
             ddsnum = int(channel.split(' ')[-1])
             if ddsnum not in DDSs:
                 continue
-            for subchnl in ['freq','amp','phase']:            
+            for subchnl in self.subchnls:            
                 self.program_static(ddsnum,subchnl,values[channel][subchnl]*self.conv[subchnl])
             
         # return True to indicate we successfully transitioned back to manual mode
@@ -299,10 +306,65 @@ class NovaTech409BWorker(NovaTech409B_ACWorker):
             self.smart_cache['STATIC_DATA'] = None
             for channel in self.initial_values:
                 ddsnum = int(channel.split(' ')[-1])
-                for subchnl in ['freq','amp','phase']:
+                for subchnl in self.subchnls:
                     self.program_static(ddsnum,subchnl,self.initial_values[channel][subchnl]*self.conv[subchnl])
         else:
             # if not aborting, final values already set so do nothing
             pass
         # return True to indicate we successfully transitioned back to manual mode
         return True
+
+class NovaTech440AWorker(NovaTech409BWorker):
+    
+    def init(self):
+        global serial; import serial
+        global h5py; import labscript_utils.h5_lock, h5py
+        self.smart_cache = {'STATIC_DATA': None,'CURRENT_DATA':None}
+        
+        self.N_chan = 1
+        self.subchnls = ['freq','phase']
+        
+        # conversion dictionaries for program_static from 
+        # program_manual                      
+        self.conv = {'freq':10**(-6),'phase':16384.0/360.0}
+        # and from transition_to_buffered
+        self.conv_buffered = {'freq':10**(-6),'phase':1}
+        # read from device conversion, basically conv/conv_buffered
+        self.read_conv = {'freq':1/4.0,'phase':360.0/16384.0}
+        
+        self.connection = serial.Serial(self.com_port, baudrate = self.baud_rate, timeout=0.1)
+        self.connection.readlines()
+        
+        self.connection.write(b'e d\r\n')
+        response = self.connection.readline()
+        
+        if response == b'e d\r\n':
+            # if echo was enabled, then the command to disable it echos back at us!
+            response = self.connection.readline()
+        if response != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: "e d". Cannot connect to the device.')
+            
+        # populate the 'CURRENT_DATA' dictionary    
+        self.check_remote_values()
+
+    def check_remote_values(self):
+        # Get the currently output values:
+        self.connection.write(b'QUE\r\n')
+        try:
+            response = self.connection.readline()
+        except socket.timeout:
+            raise Exception('Failed to execute command "QUE". Cannot connect to device.')
+        
+        results = {}
+        results['channel 0'] = {}
+        phase, freq, ignore, ignore, ignore, ignore = response.split()
+        # Convert hex multiple of 4 Hz to Hz:
+        # needs /4 for some reason to convert correctly
+        results['channel 0']['freq'] = float(int(freq,16))*self.read_conv['freq']
+
+        # Convert hex fraction of 16384 to degrees:
+        results['channel 0']['phase'] = int(phase,16)*self.read_conv['phase']
+            
+        self.smart_cache['CURRENT_DATA'] = results
+        
+        return results

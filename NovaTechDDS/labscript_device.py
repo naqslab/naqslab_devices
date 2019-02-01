@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /naqslab_devices/NovaTech409B/labscript_device.py                 #
+# /naqslab_devices/NovaTechDDS/labscript_device.py                  #
 #                                                                   #
 # Copyright 2018, David Meyer                                       #
 #                                                                   #
@@ -12,6 +12,7 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
+import traceback
 from labscript_utils import PY2
 if PY2:
     str = unicode
@@ -288,4 +289,84 @@ class NovaTech409B(NovaTech409B_AC):
         grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
         self.set_property('frequency_scale_factor', dds.frequency.scale_factor, location='device_properties')
         self.set_property('amplitude_scale_factor', dds.amplitude.scale_factor, location='device_properties')
+        self.set_property('phase_scale_factor', dds.phase.scale_factor, location='device_properties')
+
+class NovaTech440A(NovaTech409B_AC):
+    description = 'NT-DDS440A'
+    allowed_children = [StaticDDS]
+    clock_limit = 1
+    # this is not a triggerable device
+
+    def __init__(self, name,
+                 com_port = "", baud_rate=19200, **kwargs):
+
+        Device.__init__(self, name, None, com_port, **kwargs)
+        self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))
+
+    def add_device(self, device):
+        Device.add_device(self, device)
+        # The Novatech doesn't support 0Hz output; 
+        # set the default frequency of the DDS to 200 kHz:
+        device.frequency.default_value = 200e3  
+        
+    def quantise_freq(self, data, device):
+        if not isinstance(data, np.ndarray):
+            data = np.array(data)
+        # Ensure that frequencies are within bounds:
+        if np.any(data > 402.653183e6 )  or np.any(data < 0.2e3 ):
+            msg = """%s %s
+            can only have frequencies between 200kHz and 402MHz,
+            this limit imposed by %s."""
+            msg = dedent(msg) % (device.description, device.name, self.name) + traceback.format_exc()
+            raise LabscriptError(msg)
+        # It's faster to add 0.5 then typecast than to round to integers first:
+        data = np.array((data)+0.5,dtype=np.uint32)
+        scale_factor = 10
+        return data, scale_factor
+        
+    def generate_code(self, hdf5_file):
+        DDSs = {}
+        for output in self.child_devices:
+            try:
+                prefix, channel = output.connection.split()
+                channel = int(channel)
+            except:
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(output.description,output.name,str(output.connection)) + 
+                                     'Format must be \'channel 0\'.')
+            DDSs[channel] = output
+            
+        if not DDSs:
+            # if no channels are being used, no need to continue
+            return
+            
+        for connection in DDSs:
+            if connection in range(1):
+                # Static DDS
+                dds = DDSs[connection]   
+                dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.static_value, dds)
+                dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.static_value, dds)
+            else:
+                raise LabscriptError('{:s} {:s} has invalid connection string: \'{:s}\'. '.format(dds.description,dds.name,str(dds.connection)) + 
+                                     'Format must be \'channel 0\'.')
+                                     
+        if dds.amplitude.static_value != 0.0:
+            # user has tried to set amplitude away from default
+            raise LabscriptError('{:s}:{:s} does not have controllable amplitude'.format(self.name, dds.name))
+                 
+        static_dtypes = {'names':['freq{:d}'.format(i) for i in DDSs] +
+                            ['phase{:d}'.format(i) for i in DDSs],
+                            'formats':[np.uint32 for i in DDSs] +
+                            [np.uint16 for i in DDSs] + 
+                            [np.uint16 for i in DDSs]}  
+        
+        static_table = np.zeros(1, dtype=static_dtypes)            
+        
+        for connection in DDSs:
+            dds = DDSs[connection]
+            static_table['freq{:d}'.format(connection)] = dds.frequency.raw_output
+            static_table['phase{:d}'.format(connection)] = dds.phase.raw_output
+
+        grp = self.init_device_group(hdf5_file)
+        grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
+        self.set_property('frequency_scale_factor', dds.frequency.scale_factor, location='device_properties')
         self.set_property('phase_scale_factor', dds.phase.scale_factor, location='device_properties')

@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /naqslab_devices/NovaTech409B/runviewer_parser.py                 #
+# /naqslab_devices/NovaTechDDS/runviewer_parser.py                  #
 #                                                                   #
 # Copyright 2018, David Meyer                                       #
 #                                                                   #
@@ -31,7 +31,7 @@ class NovaTech409B_ACParser(object):
     def get_traces(self, add_trace, clock=None):
         if clock is None:
             # we're the master pseudoclock, software triggered. So we don't have to worry about trigger delays, etc
-            raise Exception('No clock passed to %s. The NovaTechDDS409B_AC must be clocked by another device.' % self.name)
+            raise Exception('No clock passed to %s. A NovaTechDDS must be clocked by another device.' % self.name)
         
         times, clock_value = clock[0], clock[1]
         
@@ -82,3 +82,9 @@ class NovaTech409BParser(NovaTech409B_ACParser):
         NovaTech409B_ACParser.__init__(self,path,device)
         self.dyn_chan = []
         self.static_chan = [0,1,2,3]
+        
+class NovaTech440AParser(NovaTech409B_ACParser):
+    def __init__(self, path, device):
+        NovaTech409B_ACParser.__init__(self,path,device)
+        self.dyn_chan = []
+        self.static_chan = [0]
