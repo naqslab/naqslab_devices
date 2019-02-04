@@ -28,8 +28,9 @@ import labscript_utils.h5_lock, h5py
        
 class NovaTech409B_ACWorker(Worker):
     def init(self):
-        #global serial; import serial
-        #global h5py; import labscript_utils.h5_lock, h5py
+        """Initialization command run automatically by the BLACS tab on 
+        startup. It establishes communication and sends initial default 
+        configuration commands"""
         self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': '',
                                 'CURRENT_DATA':None}
         self.baud_dict = {9600:b'78', 19200:b'3c', 38400:b'1e',57600:b'14',115200:b'0a'}
@@ -123,7 +124,8 @@ class NovaTech409B_ACWorker(Worker):
         return connected, response
         
     def check_remote_values(self):
-        # Get the currently output values:
+        """Queries device for current output settings. Return results as a 
+        dictionary to update the BLACS tab."""
         self.connection.write(b'QUE\r\n')
         try:
             response = [self.connection.readline() for i in range(self.N_chan+1)]
@@ -144,6 +146,8 @@ class NovaTech409B_ACWorker(Worker):
         return results
         
     def program_manual(self,front_panel_values):
+        """Called within the BLACS worker during transitions. This calls
+        program_static for each setting if it isn't already set."""
         for i in range(self.N_chan):
             print(self.subchnls)    
             # and for each subchnl in the DDS,
@@ -159,7 +163,9 @@ class NovaTech409B_ACWorker(Worker):
                 self.smart_cache['STATIC_DATA'] = None
         return self.check_remote_values()
 
-    def program_static(self,channel,type,value):            
+    def program_static(self,channel,type,value):
+        """General output parameter programming function. Only sends one command
+        per use."""            
         if type == 'freq':
             command = b'F%d %.7f\r\n' % (channel,value)
         elif type == 'amp':
@@ -348,6 +354,8 @@ class NovaTech440AWorker(NovaTech409BWorker):
         self.check_remote_values()
 
     def check_remote_values(self):
+        """The 440A Query command returns values in a different order and does
+        not tell the amplitude."""
         # Get the currently output values:
         self.connection.write(b'QUE\r\n')
         try:

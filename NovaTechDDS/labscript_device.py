@@ -23,6 +23,9 @@ from labscript_utils.unitconversions import NovaTechDDS9mFreqConversion, NovaTec
 import numpy as np
 import labscript_utils.h5_lock, h5py
 
+__version__ = '1.0.0'
+__author__ = ['dihm']
+
 
 class NovaTech409B_AC(IntermediateDevice):
     description = 'NT-DDS409B-AC'
@@ -72,6 +75,8 @@ class NovaTech409B_AC(IntermediateDevice):
         
         
     def quantise_freq(self, data, device):
+        """Provides bounds error checking and scales input values to instrument
+        units (0.1 Hz) before ensuring uint32 integer type."""
         if not isinstance(data, np.ndarray):
             data = np.array(data)
         # Ensure that frequencies are within bounds:
@@ -85,6 +90,8 @@ class NovaTech409B_AC(IntermediateDevice):
         return data, scale_factor
         
     def quantise_phase(self, data, device):
+        """Ensures phase is wrapped about 360 degrees and scales to instrument
+        units before type casting to uint16."""
         if not isinstance(data, np.ndarray):
             data = np.array(data)
         # ensure that phase wraps around:
@@ -95,6 +102,8 @@ class NovaTech409B_AC(IntermediateDevice):
         return data, scale_factor
         
     def quantise_amp(self,data,device):
+        """Ensures amplitude is within bounds and scales to instrument units
+        (between 0 and 1023) before typecasting to uint16"""
         if not isinstance(data, np.ndarray):
             data = np.array(data)
         # ensure that amplitudes are within bounds:
@@ -245,6 +254,8 @@ class NovaTech409B(NovaTech409B_AC):
         self.phase_mode = phase_mode
         
     def generate_code(self, hdf5_file):
+        """Modified version of 409B-AC generate_code that only handles static
+        DDS outputs"""
         DDSs = {}
         for output in self.child_devices:
             try:
@@ -299,6 +310,8 @@ class NovaTech440A(NovaTech409B_AC):
 
     def __init__(self, name,
                  com_port = "", baud_rate=19200, **kwargs):
+        """Labscript class for Novatech 440A DDS. This is a high frequency
+        DDS with single channel output that does not support amplitude control"""
 
         Device.__init__(self, name, None, com_port, **kwargs)
         self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))
@@ -325,6 +338,8 @@ class NovaTech440A(NovaTech409B_AC):
         return data, scale_factor
         
     def generate_code(self, hdf5_file):
+        """Modified generate code from 409B to only accept one channel and 
+        ignore amplitude commands which are not supported by the device."""
         DDSs = {}
         for output in self.child_devices:
             try:
