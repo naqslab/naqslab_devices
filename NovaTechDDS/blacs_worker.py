@@ -317,8 +317,8 @@ class NovaTech409BWorker(NovaTech409B_ACWorker):
 class NovaTech440AWorker(NovaTech409BWorker):
     
     def init(self):
-        global serial; import serial
-        global h5py; import labscript_utils.h5_lock, h5py
+        """Modified init from 409B-AC. The 440A only supports one baud rate
+        and does not support output mode commands."""
         self.smart_cache = {'STATIC_DATA': None,'CURRENT_DATA':None}
         
         self.N_chan = 1
