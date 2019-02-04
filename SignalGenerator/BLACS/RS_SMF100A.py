@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /RS_SMF100A.py                                                    #
+# /naqslab_devices/SignalGenerator/BLACS/RS_SMF100A.py              #
 #                                                                   #
 # Copyright 2018, David Meyer                                       #
 #                                                                   #
@@ -14,25 +14,10 @@ from labscript_utils import PY2
 if PY2:
     str = unicode
 
-from naqslab_devices.SignalGenerator import *
-from labscript import LabscriptError
-import labscript_utils.properties
-
-__version__ = '0.1.0'
-__author__ = ['dihm']
+from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
+from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
+from labscript import LabscriptError      
         
-@labscript_device              
-class RS_SMF100A(SignalGenerator):
-    description = 'Rhode & Schwarz SMF100A Signal Generator'
-    # define the scale factor - converts between BLACS front panel and 
-    # Writing: scale*desired_freq // Reading:desired_freq/scale
-    scale_factor = 1.0e9 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (100e3, 22e9) # set in scaled unit (Hz)
-    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
-    amp_limits = (-26, 18) # set in scaled unit (dBm)        
-        
-
-@BLACS_tab
 class RS_SMF100ATab(SignalGeneratorTab):
     # Capabilities
     base_units = {'freq':'GHz', 'amp':'dBm'}
@@ -54,7 +39,6 @@ class RS_SMF100ATab(SignalGeneratorTab):
         self.device_worker_class = RS_SMF100AWorker
         SignalGeneratorTab.__init__(self,*args,**kwargs)
 
-@BLACS_worker
 class RS_SMF100AWorker(SignalGeneratorWorker):
     # define the scale factor
     # Writing: scale*desired_freq // Reading:desired_freq/scale

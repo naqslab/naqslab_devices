@@ -35,7 +35,7 @@ __author__ = ['dihm']
 ##############################################
 # define helper sub-classes of labscript defined channels
 
-from labscript import Device, AnalogIn, StaticDDS, StaticAnalogQuantity, LabscriptError
+from labscript import Device, AnalogIn, StaticDDS, StaticAnalogQuantity, LabscriptError, set_passed_properties
 
 class ScopeChannel(AnalogIn):
     """Labscript device that handles acquisition stuff.
@@ -66,7 +66,7 @@ class CounterScopeChannel(ScopeChannel):
             self.counts.append({'type':typ,'polarity':pol})
         else:
             raise LabscriptError('Invalid counting parameters for {0:s}:{1:s}'.format(self.parent_name,self.name)) 
-            
+'''
 class StaticFreqAmp(StaticDDS):
     """A Static Frequency that supports frequency and amplitude control."""
     description = 'Frequency Source class for Signal Generators'
@@ -93,4 +93,4 @@ class StaticFreqAmp(StaticDDS):
         """overridden from StaticDDS so as not to provide time resolution -
         output can be enabled or disabled only at the start of the shot"""
         raise LabscriptError('StaticFreqAmp {:s} does not support a digital gate'.format(self.name))
-'''
+
