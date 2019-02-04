@@ -14,8 +14,6 @@ from labscript_utils import PY2
 if PY2:
     str = unicode
 
-import numpy as np
-
 from naqslab_devices.VISA.blacs_tab import VISATab
 
 from blacs.tab_base_classes import define_state

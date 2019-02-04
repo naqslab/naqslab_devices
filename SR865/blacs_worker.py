@@ -18,6 +18,8 @@ import numpy as np
 from naqslab_devices.VISA.blacs_worker import VISAWorker
 from labscript import LabscriptError
 
+import labscript_utils.h5_lock, h5py
+
 # import sensitivity and tau settings from labscript device
 from naqslab_devices.SR865.labscript_device import sens, tau
 
@@ -49,8 +51,6 @@ class SR865Worker(VISAWorker):
         return coerced_i
     
     def init(self):
-        # import h5py with locks
-        global h5py; import labscript_utils.h5_lock, h5py
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
         
