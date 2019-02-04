@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /VISA.py                                                          #
+# /naqslab_devices/VISA/blacs_tab.py                                #
 #                                                                   #
 # Copyright 2018, David Meyer                                       #
 #                                                                   #
@@ -14,47 +14,18 @@ from labscript_utils import PY2
 if PY2:
     str = unicode
 
-from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
-
-from labscript import Device, LabscriptError, set_passed_properties
-import labscript_utils.properties
-
-__version__ = '0.1.0'
-__author__ = ['dihm']
-      
-@labscript_device              
-class VISA(Device):
-    description = 'VISA Compatible Instrument'
-    allowed_children = []
-    
-    @set_passed_properties(property_names = {
-        "device_properties":["VISA_name"]}
-        )
-    def __init__(self, name, parent_device, VISA_name, **kwargs):
-        '''VISA_name can be full VISA connection string or NI-MAX alias.
-        Trigger Device should be fast clocked device. '''
-        self.VISA_name = VISA_name
-        self.BLACS_connection = VISA_name
-        Device.__init__(self, name, parent_device, VISA_name)
-        
-    def generate_code(self, hdf5_file):
-        # over-ride this method for child classes
-        # it should not return anything
-        raise LabscriptError('generate_code() must be overridden for {0:s}'.format(self.name))
-        
-        
-from blacs.tab_base_classes import Worker, define_state
+from labscript import LabscriptError
+     
+from blacs.tab_base_classes import define_state
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 from blacs.device_base_class import DeviceTab
 from qtutils import UiLoader
 import os
-import sys
 
 # Imports for handling icons in STBstatus.ui
 from qtutils.qt import QtCore
 from qtutils.qt import QtGui
 
-@BLACS_tab
 class VISATab(DeviceTab):
     # Define the Status Byte labels with this dictionary structure
     status_byte_labels = {'bit 7':'bit 7 label', 
@@ -67,6 +38,8 @@ class VISATab(DeviceTab):
                           'bit 0':'bit 0 label'}
     status_widget = 'STBstatus.ui'
     
+    STBui_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),status_widget)
+    
     def __init__(self,*args,**kwargs):
         '''You MUST override this class in order to define the device worker for any child devices.
         You then call this parent method to finish initialization.'''
@@ -77,7 +50,7 @@ class VISATab(DeviceTab):
     def initialise_GUI(self):
         '''Loads the standard STBstatus.ui widget and sets the worker defined in __init__'''
         # load the status_ui for the STB register
-        self.status_ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),self.status_widget))
+        self.status_ui = UiLoader().load(self.STBui_path)
         self.get_tab_layout().addWidget(self.status_ui)
                    
         # generate the dictionaries
@@ -126,82 +99,4 @@ class VISATab(DeviceTab):
     def send_clear(self,widget=None):
         value = self.status_ui.clear_button.isChecked()
         yield(self.queue_work(self._primary_worker,'clear',value))
-
-import visa      
-@BLACS_worker
-class VISAWorker(Worker):   
-    def init(self):
-        '''Initializes basic worker and opens VISA connection to device.'''    
-        self.VISA_name = self.address
-        self.resourceMan = visa.ResourceManager()
-        self.connection = self.resourceMan.open_resource(self.VISA_name)
-        self.connection.timeout = 2000
-    
-    def check_remote_values(self):
-        # over-ride this method if remote value check is supported
-        return None
-    
-    def convert_register(self,register):
-        '''Converts register value to dict of bools'''
-        results = {}
-        #get the status and convert to binary, and take off the '0b' header:
-        status = bin(register)[2:]
-        # if the status is less than 8 bits long, pad the start with zeros!
-        while len(status)<8:
-            status = '0'+status
-        # reverse the status string so bit 0 is first indexed
-        status = status[::-1]
-        # fill the status byte dictionary
-        for i in range(0,8):
-            results['bit '+str(i)] = bool(int(status[i]))
-        
-        return results
-    
-    def check_status(self):
-        '''Reads the Status Byte Register of the VISA device.
-        Returns dictionary of bit values.'''
-        results = {}
-        stb = self.connection.read_stb()
-        
-        return self.convert_register(stb)
-    
-    def program_manual(self,front_panel_values):
-        # over-ride this method if remote programming supported
-        # should return self.check_remote_values() to confirm program success
-        return self.check_remote_values()
-        
-    def clear(self,value):
-        '''Sends standard *CLR to clear registers of device.'''
-        self.connection.clear()
-        
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        '''Stores various device handles for use in transition_to_manual method.'''
-        # Store the initial values in case we have to abort and restore them:
-        self.initial_values = initial_values
-        # Store the final values to for use during transition_to_static:
-        self.final_values = {}
-        # Store some parameters for saving data later
-        self.h5_file = h5file
-        self.device_name = device_name
-                
-        return self.final_values
-        
-    def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
-        
-    def abort_buffered(self):
-        return self.transition_to_manual(True)
-            
-    def transition_to_manual(self,abort = False):
-        '''Simple transition_to_manual method where no data is saved.'''         
-        if abort:
-            # If we're aborting the run, reset to original value
-            self.program_manual(self.initial_values)
-        # If we're not aborting the run, stick with buffered value. Nothing to do really!
-        # return the current values in the device
-        return True
-        
-    def shutdown(self):
-        '''Closes VISA connection to device.'''
-        self.connection.close()
 
