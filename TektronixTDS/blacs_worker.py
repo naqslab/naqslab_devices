@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /TekScope.py                                                      #
+# /naqslab_devices/TektronixTDS/blacs_worker.py                     #
 #                                                                   #
 # Copyright 2018, David Meyer                                       #
 #                                                                   #
@@ -15,119 +15,26 @@ if PY2:
     str = unicode
 
 import numpy as np
-from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
-from naqslab_devices.VISA import VISATab, VISAWorker
-from labscript import Device, TriggerableDevice, AnalogIn, config, LabscriptError, set_passed_properties
-import labscript_utils.properties
 
-__version__ = '0.1.0'
-__author__ = ['dihm']
+from naqslab_devices.VISA.blacs_worker import VISAWorker
+from labscript import LabscriptError
 
-class ScopeChannel(AnalogIn):
-    """Labscript device that handles acquisition stuff.
-    Connection should be in list of TekScope channels list."""
-    description = 'Scope Acquisition Channel Class'
-    def __init__(self, name, parent_device, connection):
-        Device.__init__(self,name,parent_device,connection)
-        self.acquisitions = []
-        
-    def acquire(self):
-        if self.acquisitions:
-            raise LabscriptError('Scope Channel {0:s}:{1:s} can only have one acquisition!'.format(self.parent_device.name,self.name))
-        else:
-            self.acquisitions.append({'label': self.name})
-      
-@labscript_device              
-class TekScope(TriggerableDevice):
-    description = 'Tektronics Digital Oscilliscope'
-    allowed_children = [ScopeChannel]
-    trigger_duration = 1e-3
-    
-    @set_passed_properties(property_names = {
-        "device_properties":["VISA_name"]}
-        )
-    def __init__(self, name,VISA_name, trigger_device, trigger_connection, **kwargs):
-        '''VISA_name can be full VISA connection string or NI-MAX alias.
-        Trigger Device should be fast clocked device. '''
-        self.VISA_name = VISA_name
-        self.BLACS_connection = VISA_name
-        TriggerableDevice.__init__(self,name,trigger_device,trigger_connection,**kwargs)
-        
-        # initialize start_time variable
-        self.trigger_time = None
-        
-        
-    def generate_code(self, hdf5_file):
-            
-        Device.generate_code(self, hdf5_file)
-        
-        acquisitions = []
-        for channel in self.child_devices:
-            if channel.acquisitions:
-                acquisitions.append((channel.connection,channel.acquisitions[0]['label']))
-        acquisition_table_dtypes = np.dtype({'names':['connection','label'],'formats':['a256','a256']})
-        acquisition_table = np.empty(len(acquisitions),dtype=acquisition_table_dtypes)
-        for i, acq in enumerate(acquisitions):
-            acquisition_table[i] = acq   
-        
-        grp = self.init_device_group(hdf5_file)
-        # write table to h5file if non-empty
-        if len(acquisition_table):
-            grp.create_dataset('ACQUISITIONS',compression=config.compression,
-                                data=acquisition_table)
-            grp['ACQUISITIONS'].attrs['trigger_time'] = self.trigger_time
-                                
-    def acquire(self,start_time):
-        '''Call to define time when trigger will happen for scope.'''
-        if not self.child_devices:
-            raise LabscriptError('No channels acquiring for trigger {0:s}'.format(self.name))
-        else:
-            self.parent_device.trigger(start_time,self.trigger_duration)
-            self.trigger_time = start_time
+import labscript_utils.h5lock, h5py
 
-@BLACS_tab
-class TekScopeTab(VISATab):
-    # Event Byte Label Definitions for TDS200/1000/2000 series scopes
-    # Used bits set by '*ESE' command in setup string of worker class
-    status_byte_labels = {'bit 7':'Unused', 
-                          'bit 6':'Unused',
-                          'bit 5':'Command Error',
-                          'bit 4':'Execution Error',
-                          'bit 3':'Device Error',
-                          'bit 2':'Query Error',
-                          'bit 1':'Unused',
-                          'bit 0':'Unused'}
-    
-    def __init__(self,*args,**kwargs):
-        if not hasattr(self,'device_worker_class'):
-            self.device_worker_class = TekScopeWorker
-        VISATab.__init__(self,*args,**kwargs)
-    
-    def initialise_GUI(self):
-        # Call the VISATab parent to initialise the STB ui and set the worker
-        VISATab.initialise_GUI(self)
 
-        # Set the capabilities of this device
-        self.supports_remote_value_check(False)
-        self.supports_smart_programming(False) 
-        self.statemachine_timeout_add(5000, self.status_monitor)        
-       
-@BLACS_worker
-class TekScopeWorker(VISAWorker):   
+class TDS_ScopeWorker(VISAWorker):   
     # define instrument specific read and write strings
     setup_string = ':HEADER OFF;*ESE 60;*SRE 32;*CLS;:DAT:ENC RIB;WID 2;'
     read_y_parameters_string = ':DAT:SOU CH%d;:WFMPRE:YZE?;YMU?;YOFF?'
     read_x_parameters_string = ':WFMPRE:XZE?;XIN?'
     read_waveform_string = 'CURV?'
     
-    # define result parser
     def waveform_parser(self,raw_waveform_array,y0,dy,yoffset):
         '''Parses the numpy array from the CURV? query.'''
         return (raw_waveform_array - yoffset)*dy + y0
     
     def init(self):
-        # import h5py with locks
-        global h5py; import labscript_utils.h5_lock, h5py
+        
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
         # Override the timeout for longer scope waits
@@ -191,7 +98,7 @@ class TekScopeWorker(VISAWorker):
         return True
         
     def check_status(self):
-        # Tek scopes don't say anything useful in the stb, using the event register instead
+        '''Uses the more informative ESR register.'''
         esr = int(self.connection.query('*ESR?'))
         
         # if esr is non-zero, read out the error message and report
