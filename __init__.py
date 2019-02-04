@@ -50,7 +50,7 @@ class ScopeChannel(AnalogIn):
             raise LabscriptError('Scope Channel {0:s}:{1:s} can only have one acquisition!'.format(self.parent_device.name,self.name))
         else:
             self.acquisitions.append({'label': self.name})
-'''            
+           
 class CounterScopeChannel(ScopeChannel):
     """Labscript device that handles acquisition stuff.
     Also specifies if pulse counting on analog channel.
@@ -66,7 +66,7 @@ class CounterScopeChannel(ScopeChannel):
             self.counts.append({'type':typ,'polarity':pol})
         else:
             raise LabscriptError('Invalid counting parameters for {0:s}:{1:s}'.format(self.parent_name,self.name)) 
-'''
+
 class StaticFreqAmp(StaticDDS):
     """A Static Frequency that supports frequency and amplitude control."""
     description = 'Frequency Source class for Signal Generators'
