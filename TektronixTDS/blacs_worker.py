@@ -79,7 +79,7 @@ class TDS_ScopeWorker(VISAWorker):
             dtypes = np.dtype({'names':['t','values'],'formats':[np.float64,np.float32]})         
             
             # re-open lock on h5file to save data
-            with h5py.File(self.h5_file,'a') as hdf5_file:
+            with h5py.File(self.h5_file,'r+') as hdf5_file:
                 try:
                     measurements = hdf5_file['/data/traces']
                 except:

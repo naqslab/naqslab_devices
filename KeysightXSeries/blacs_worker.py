@@ -79,7 +79,7 @@ class KeysightXScopeWorker(VISAWorker):
         data = None
         refresh = False
         send_trigger = False
-        with h5py.File(h5file) as hdf5_file:
+        with h5py.File(h5file,'r') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             device_props = labscript_utils.properties.get(hdf5_file,device_name,'device_properties')
             if 'COUNTERS' in group:

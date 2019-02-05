@@ -93,7 +93,7 @@ class SignalGeneratorWorker(VISAWorker):
         VISAWorker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
         data = None
         # Program static values
-        with h5py.File(h5file) as hdf5_file:
+        with h5py.File(h5file,'r') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             # If there are values to set the unbuffered outputs to, set them now:
             if 'STATIC_DATA' in group:

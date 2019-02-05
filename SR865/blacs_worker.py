@@ -87,7 +87,7 @@ class SR865Worker(VISAWorker):
         VISAWorker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
         
         data = None
-        with h5py.File(h5file) as hdf5_file:
+        with h5py.File(h5file,'r') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             # If there are values to set the unbuffered outputs to, set them now:
             if 'STATIC_DATA' in group:
@@ -118,7 +118,7 @@ class SR865Worker(VISAWorker):
                 self.final_values['phase'] = initial_values['phase']
                     
         # write the final_values to h5file for later lookup
-        with h5py.File(h5file) as hdf5_file:
+        with h5py.File(h5file, 'r+') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             group.attrs.create('sensitivity',self.final_values['sens'])
             group.attrs.create('tau',self.final_values['tau'])
