@@ -1,64 +1,121 @@
 # README #
 
-This repository contains various 3rd-party device implementations for use with the [labscript suite](https://bitbucket.org/labscript_suite) experiment control system.
+This repository contains various 3rd-party device implementations for use with 
+the python-based [labscript suite](https://bitbucket.org/labscript_suite) 
+experiment control system.
+
+Devices include:
+
+* Novatech 409B & 409B-AC DDS
+* Novatech 440A DDS
+* Stanford Research 865 Lockin Amplifier
+* Tektronix TDS series oscilloscopes
+* Keysight MSO/DSO X series oscilloscopes
+* Various Legacy CW RF Signal Generators
+    * Rhode & Schwarz SMF 100A
+    * Rhode & Schwarz SMHU
+    * HP 8642A
+    * HP 8643A
+    
+The above code is designed to be modular allowing for easy addition of other 
+models, particularly oscilloscopes and CW Signal Generators.
 
 ### How do I get set up? ###
 
-Clone this repository into the labscript suite directory. Invoke in labscript scripts like other labscript\_devices
+The following works for labscript_devices post version 2.2.0.
+
+Clone this repository into the labscript suite directory. Invoke in labscript 
+scripts like other labscript\_devices
 ```python
-from naqslab_devices.TekScope import TekScope, ScopeChannel
+from naqslab_devices import ScopeChannel
+from naqslab_devices.KeysightXSeries import KeysightXScope
 ```
 
-As of now BLACS will only look in the labscript\_devices repository for device classes. 
-A quick workaround for this until a more permanant solution is implemented is this diff applied to \_\_init\_\_.py in labscript\_devices
+As of now BLACS will only look in the labscript\_devices repository for 
+device classes. 
+A quick workaround for this until a more permanant solution is implemented 
+is this diff applied to \_\_init\_\_.py in labscript\_devices
 
 ```diff
-@@ -11,6 +11,8 @@
- check_version('labscript', '2.1', '3')
- check_version('blacs', '2.1', '3')
+@@ -68,6 +68,9 @@
+ The old method may be deprecated in the future.
+ """
  
 +lab_repo = 'naqslab_devices'
++lab_repo_dir = os.path.join(labscript_suite_install_dir,lab_repo)
 +
  
  class ClassRegister(object):
      """A register for looking up classes by module name.  Provides a
-@@ -49,6 +51,11 @@
+@@ -105,18 +108,21 @@
+             # Ensure the module's code has run (this does not re-import it if it is already in sys.modules)
              importlib.import_module('.' + name, __name__)
-             print 'imported', name, 'ok!'
          except ImportError:
--            sys.stderr.write('Error importing module %s.%s whilst looking for classes for device %s. '%(__name__, name, name) +
-+            # next try looking in the lab's device folder
-+            try:
+-            msg = """No %s registered for a device named %s. Ensure that there is a file
+-                'register_classes.py' with a call to
+-                labscript_devices.register_classes() for this device, with the device
+-                name passed to register_classes() matching the name of the device class.
++            try: # hack to use local repo
 +                importlib.import_module('.' + name, lab_repo)
-+            
 +            except ImportError:
-+                sys.stderr.write('Error importing module %s.%s whilst looking for classes for device %s. '%(__name__, name, name) +
-                              'Check that the module exists, is named correctly, and can be imported with no errors. ' +
-                              'Full traceback follows:\n')
-@@ -53,6 +60,6 @@
-                              'Check that the module exists, is named correctly, and can be imported with no errors. ' +
-                              'Full traceback follows:\n')
--            raise
-+                raise
++                msg = """No %s registered for a device named %s. Ensure that there is a file
++                    'register_classes.py' with a call to
++                    labscript_devices.register_classes() for this device, with the device
++                    name passed to register_classes() matching the name of the device class.
+ 
+-                Fallback method of looking for and importing a module in
+-                labscript_devices with the same name as the device also failed. If using
+-                this method, check that the module exists, has the same name as the
+-                device class, and can be imported with no errors. Import error
+-                was:\n\n"""
+-            msg = dedent(msg) % (self.instancename, name) + traceback.format_exc()
+-            raise ImportError(msg)
++                    Fallback method of looking for and importing a module in
++                    labscript_devices with the same name as the device also failed. If using
++                    this method, check that the module exists, has the same name as the
++                    device class, and can be imported with no errors. Import error
++                    was:\n\n"""
++                msg = dedent(msg) % (self.instancename, name) + traceback.format_exc()
++                raise ImportError(msg)
          # Class definitions in that module have executed now, check to see if class is in our register:
          try:
              return self.registered_classes[name]
+@@ -250,6 +256,17 @@
+             module_name = 'labscript_devices._register_classes_script_%d' % module_num
+             _ = imp.load_module(module_name, fp, pathname, desc)
+             module_num += 1
++    
++    # hack for lab repo to use new arbitrary subfolders        
++    for folder, _, filenames in os.walk(lab_repo_dir):
++        if 'register_classes.py' in filenames:
++            # The module name is the path to the file, relative to the labscript suite
++            # install directory:
++            # Open the file using the import machinery, and import it as module_name.
++            fp, pathname, desc = imp.find_module('register_classes', [folder])
++            module_name = 'naqslab_devices._register_classes_script_%d' % module_num
++            _ = imp.load_module(module_name, fp, pathname, desc)
++            module_num += 1
+ 
+ 
+ if __name__ == '__main__':
+
 
 ```
 
-Usage of individual devices varies somewhat. Here is an example connectiontable showing some of their instantiation
+#### Usage ####
+
+Usage of individual devices varies somewhat. 
+Here is an example connectiontable showing some of their instantiation with
+labscript_devices > 2.2.0.
 ```python
 from labscript import *
-from naqslab_devices.PulseBlasterESRPro300 import PulseBlasterESRPro300
-from naqslab_devices.NovaTechDDS409B import NovaTechDDS409B
-from naqslab_devices.NovaTechDDS409B_AC import NovaTechDDS409B_AC
+from naqslab_devices.PulseBlasterESRPro300.labscript_device import PulseBlasterESRPro300
+from naqslab_devices.NovaTechDDS.labscript_device import NovaTech409B, NovaTech409B_AC, NovaTech440A
 from labscript_devices.NI_DAQmx import NI_DAQmx
-from naqslab_devices.SignalGenerator import StaticFreqAmp
-from naqslab_devices.RS_SMHU import RS_SMHU
-from naqslab_devices.RS_SMF100A import RS_SMF100A
-from naqslab_devices.SR865 import SR865
-from naqslab_devices.TekScope import TekScope, ScopeChannel
-from labscript_devices.Camera import Camera
+from naqslab_devices.SignalGenerator.Models import RS_SMF100A, RS_SMHU
+from naqslab_devices.SR865.labscript_device import SR865
+from naqslab_devices import ScopeChannel, StaticFreqAmp
+from naqslab_devices.KeysightXSeries.labscript_device import KeysightXScope
 
 PulseBlasterESRPro300(name='pulseblaster_0', board_number=0, programming_scheme='pb_start/BRANCH')
 ClockLine(name='pulseblaster_0_clockline_fast', pseudoclock=pulseblaster_0.pseudoclock, connection='flag 0')
@@ -77,8 +134,10 @@ NI_DAQmx(name='ni_6343', parent_device=pulseblaster_0_clockline_fast, clock_term
 	    num_PFI=16,
 	    DAQmx_waits_counter_bug_workaround=False)
 
-NovaTechDDS409B(name='novatech_static', com_port="com4", baud_rate = 115200)
-NovaTechDDS409B_AC(name='novatech', parent_device=pulseblaster_0_clockline_slow, com_port="com3", update_mode='asynchronous', baud_rate = 115200)
+NovaTech409B(name='novatech_static', com_port="com4", baud_rate = 115200, phase_mode='aligned')
+NovaTech409B_AC(name='novatech', parent_device=pulseblaster_0_clockline_slow, com_port="com3", update_mode='asynchronous', phase_mode='aligned', baud_rate = 115200)
+NovaTech440A(name='HFnovatech', com_port='com6', baud_rate = 19200)
+StaticDDS('HFDDS', HFnovatech, 'channel 0')
 
 # using NI-MAX alias instead of full VISA name
 RS_SMHU(name='SMHU',VISA_name='SMHU58')
@@ -88,20 +147,12 @@ RS_SMF100A(name='SMF100A', VISA_name='SMF100A')
 SR865(name='LockIn', VISA_name='SR865')
 
 # call the scope, use NI-MAX alias instead of full name
-TekScope(name='Scope',VISA_name='TDS2014B',
-	trigger_device=pulseblaster_0.direct_outputs,trigger_connection='flag 3')
-ScopeChannel('LockInX',Scope,'Channel 1')
-ScopeChannel('LockInY',Scope,'Channel 2')
-ScopeChannel('PSK_Scope',Scope,'Channel 3')
-
-# Define Cameras
-# note that Basler cameras can overlap frames if 
-# second exposure does not end before frame transfer of first finishes
-Camera('CCD_1',parent_device=pulseblaster_0.direct_outputs,connection='flag 6',
-		serial_number=21646180,effective_pixel_size=3.75E-6,
-		exposure_time=100E-6,BIAS_port=1027,
-		minimum_recovery_time=31.635E-3,orientation='side')
-# 31.635ms is full sensor readout time for Basler acA1300-30um
+KeysightXScope(name='Scope',VISA_name='DSOX3024T',
+	trigger_device=pulseblaster_0.direct_outputs,trigger_connection='flag 3',
+	num_AI=4,DI=False)
+ScopeChannel('Heterodyne',Scope,'Channel 1')
+#ScopeChannel('Absorption',Scope,'Channel 2')
+#ScopeChannel('Modulation',Scope,'Channel 4')
 
 # Define the Wait Monitor for the AC-Line Triggering
 # note that connections used here cannot be used elsewhere
@@ -115,8 +166,8 @@ DigitalOut( 'AC_trigger_arm', pulseblaster_0.direct_outputs, 'flag 2')
 DigitalOut( 'probe_AOM', pulseblaster_0.direct_outputs, 'flag 4')
 DigitalOut( 'blue_AOM', pulseblaster_0.direct_outputs, 'flag 5')
 #DigitalOut( 'PB_6', pulseblaster_0.direct_outputs, 'flag 6')
-DigitalOut( 'PB_7', pulseblaster_0.direct_outputs, 'flag 7')
-DigitalOut( 'PB_8', pulseblaster_0.direct_outputs, 'flag 8')
+#DigitalOut( 'PB_7', pulseblaster_0.direct_outputs, 'flag 7')
+#DigitalOut( 'PB_8', pulseblaster_0.direct_outputs, 'flag 8')
 DigitalOut( 'PB_9', pulseblaster_0.direct_outputs, 'flag 9')
 DigitalOut( 'PB_10', pulseblaster_0.direct_outputs, 'flag 10')
 DigitalOut( 'PB_11', pulseblaster_0.direct_outputs, 'flag 11')
@@ -137,7 +188,7 @@ DigitalOut(  'bit23', pulseblaster_0.direct_outputs, 'flag 23')
 
 AnalogOut( 'ProbeAmpLock', ni_6343, 'ao0')
 AnalogOut( 'PSK', ni_6343, 'ao1')
-AnalogOut( 'ni_6343_ao2', ni_6343, 'ao2')
+AnalogOut( 'BlueAmpLock', ni_6343, 'ao2')
 AnalogOut( 'ni_6343_ao3', ni_6343, 'ao3')
 
 AnalogIn( 'LockIn_X', ni_6343, 'ai0')
@@ -151,7 +202,7 @@ DigitalOut( 'P0_1', ni_6343, 'port0/line1')
 StaticDDS( 'blueAOM', novatech_static, 'channel 0')
 StaticDDS( 'ProbeBeatNote', novatech_static, 'channel 1')
 StaticDDS( 'ProbeAOM', novatech_static, 'channel 2')
-StaticDDS( 'static3', novatech_static, 'channel 3')
+StaticDDS( 'LO', novatech_static, 'channel 3')
 
 DDS( 'dds0', novatech, 'channel 0')
 DDS( 'dds1', novatech, 'channel 1')

@@ -1,6 +1,11 @@
 #####################################################################
 #                                                                   #
-# /KeysightMSOX3000.py                                              #
+# /naqslab_devices/KeysightXSeries/blacs_worker.py                  #
+#                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
 #                                                                   #
 #                                                                   #
 #####################################################################
@@ -10,153 +15,13 @@ if PY2:
     str = unicode
 
 import numpy as np
-from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
-from naqslab_devices.VISA import VISATab, VISAWorker
-from naqslab_devices.TekScope import ScopeChannel
-from labscript import Device, TriggerableDevice, AnalogIn, DigitalQuantity, config, LabscriptError, set_passed_properties
+from naqslab_devices.VISA.blacs_worker import VISAWorker
+from labscript import LabscriptError
 import labscript_utils.properties
 
-class CounterScopeChannel(ScopeChannel):
-    """Labscript device that handles acquisition stuff.
-    Also specifies if pulse counting on analog channel.
-    counting assumes tuple with (type,polarity)"""
-    description = 'Scope Acquisition Channel Class with Pulse Counting'
-    def __init__(self, name, parent_device, connection):
-        ScopeChannel.__init__(self,name,parent_device,connection)
-        self.counts = []                       
-        
-    def count(self,typ,pol):
-        # guess we can allow multiple types of counters per channel
-        if (typ in ['pulse', 'edge']) and (pol in ['pos', 'neg']):
-            self.counts.append({'type':typ,'polarity':pol})
-        else:
-            raise LabscriptError('Invalid counting parameters for {0:s}:{1:s}'.format(self.parent_name,self.name))        
-        
-      
-@labscript_device              
-class KeysightMSOX3000Scope(TriggerableDevice):
-    description = 'Keysight MSO-X3000 Series Digital Oscilliscope'
-    allowed_children = [ScopeChannel]
-    
-    @set_passed_properties(property_names = {
-        "device_properties":["VISA_name",
-                            "compression","compression_opts","shuffle"]}
-        )
-    def __init__(self, name, VISA_name, trigger_device, trigger_connection, 
-        num_AI=4, DI=True, trigger_duration=1e-3,
-        compression=None, compression_opts=None, shuffle=False, **kwargs):
-        '''VISA_name can be full VISA connection string or NI-MAX alias.
-        Trigger Device should be fast clocked device. 
-        num_AI sets number of analog input channels, default 4
-        DI sets if DI are present, default True
-        trigger_duration set scope trigger duration, default 1ms
-        Compression of traces in h5 file controlled by:
-        compression: \'lzf\', \'gzip\', None 
-        compression_opts: 0-9 for gzip
-        shuffle: True/False '''
-        self.VISA_name = VISA_name
-        self.BLACS_connection = VISA_name
-        TriggerableDevice.__init__(self,name,trigger_device,trigger_connection,**kwargs)
-        
-        self.compression = compression
-        if (compression == 'gzip') and (compression_opts == None):
-            # set default compression level if needed
-            self.compression_opts = 4
-        else:
-            self.compression_opts = compression_opts
-        self.shuffle = shuffle
-        
-        self.trigger_duration = trigger_duration
-        self.allowed_analog_chan = ['Channel {0:d}'.format(i) for i in range(1,num_AI+1)]
-        if DI:
-            self.allowed_pod1_chan = ['Digital {0:d}'.format(i) for i in range(0,8)]
-            self.allowed_pod2_chan = ['Digital {0:d}'.format(i) for i in range(8,16)]        
-        
-    def generate_code(self, hdf5_file):
-        '''Automatically called by compiler to write acquisition instructions
-        to h5 file. Configures counters, analog and digital acquisitions.'''    
-        Device.generate_code(self, hdf5_file)
-        trans = {'pulse':'PUL','edge':'EDG','pos':'P','neg':'N'}
-        
-        acqs = {'ANALOG':[],'POD1':[],'POD2':[]}
-        for channel in self.child_devices:
-            if channel.acquisitions:
-                # make sure channel is allowed
-                if channel.connection in self.allowed_analog_chan:
-                    acqs['ANALOG'].append((channel.connection,channel.acquisitions[0]['label']))
-                elif channel.connection in self.allowed_pod1_chan:
-                    acqs['POD1'].append((channel.connection,channel.acquisitions[0]['label']))
-                elif channel.connection in self.allowed_pod2_chan:
-                    acqs['POD2'].append((channel.connection,channel.acquisitions[0]['label']))
-                else:
-                    raise LabscriptError('{0:s} is not a valid channel.'.format(channel.connection))
-        
-        acquisition_table_dtypes = np.dtype({'names':['connection','label'],'formats':['a256','a256']})
-        
-        grp = self.init_device_group(hdf5_file)
-        # write tables if non-empty to h5_file                        
-        for acq_group, acq_chan in acqs.items():
-            if len(acq_chan):
-                table = np.empty(len(acq_chan),dtype=acquisition_table_dtypes)
-                for i, acq in enumerate(acq_chan):
-                    table[i] = acq
-                grp.create_dataset(acq_group+'_ACQUISITIONS',compression=config.compression,
-                                    data=table)
-                grp[acq_group+'_ACQUISITIONS'].attrs['trigger_time'] = self.trigger_time
-                                    
-        # now do the counters
-        counts = []
-        for channel in self.child_devices:
-            if hasattr(channel, 'counts'):
-                for counter in channel.counts:
-                    counts.append((channel.connection,
-                                    trans[counter['type']],
-                                    trans[counter['polarity']]))
-        counts_table_dtypes = np.dtype({'names':['connection','type','polarity'],'formats':['a256','a256','a256']})
-        counts_table = np.empty(len(counts),dtype=counts_table_dtypes)
-        for i,count in enumerate(counts):
-            counts_table[i] = count
-        if len(counts_table):
-            grp.create_dataset('COUNTERS',compression=config.compression,data=counts_table)
-            grp['COUNTERS'].attrs['trigger_time'] = self.trigger_time
-                                
-    def acquire(self,start_time):
-        '''Call to define time when trigger will happen for scope.'''
-        if not self.child_devices:
-            raise LabscriptError('No channels acquiring for trigger {0:s}'.format(self.name))
-        else:
-            self.parent_device.trigger(start_time,self.trigger_duration)
-            self.trigger_time = start_time
+import labscript_utils.h5_lock, h5py
 
-@BLACS_tab
-class KeysightMSOX3000ScopeTab(VISATab):
-    # Event Byte Label Definitions for MSO-X3000 series scopes
-    # Used bits set by '*ESE' command in setup string of worker class
-    status_byte_labels = {'bit 7':'Powered On', 
-                          'bit 6':'Button Pressed',
-                          'bit 5':'Command Error',
-                          'bit 4':'Execution Error',
-                          'bit 3':'Device Error',
-                          'bit 2':'Query Error',
-                          'bit 1':'Unused',
-                          'bit 0':'Operation Complete'}
-    
-    def __init__(self,*args,**kwargs):
-        if not hasattr(self,'device_worker_class'):
-            self.device_worker_class = KeysightMSOX3000Worker
-        VISATab.__init__(self,*args,**kwargs)
-    
-    def initialise_GUI(self):
-        # Call the VISATab parent to initialise the STB ui and set the worker
-        VISATab.initialise_GUI(self)
-
-        # Set the capabilities of this device
-        self.supports_remote_value_check(False)
-        self.supports_smart_programming(True) 
-        self.statemachine_timeout_add(5000, self.status_monitor)        
-       
-@BLACS_worker
-class KeysightMSOX3000Worker(VISAWorker):   
+class KeysightXScopeWorker(VISAWorker):   
     # define instrument specific read and write strings
     setup_string = '*ESE 60;*SRE 32;*CLS;:WAV:BYT MSBF;UNS ON;POIN:MODE RAW'
     # *ESE does not disable bits in ESR, just their reporting to STB
@@ -167,11 +32,10 @@ class KeysightMSOX3000Worker(VISAWorker):
     read_dig_parameters_string = ':WAV:FORM BYTE;SOUR POD{0:d};PRE?'
     read_waveform_string = ':WAV:DATA?'
     read_counter_string = ':MEAS:{0:s}{1:s}? CHAN{2:d}'
-    model_ident = 'MSO-X 3'
-    # some devices need different digitize commands
+    model_ident = 'SO-X'
+    # some devices need the alternative :SING command, checked for in init()
     dig_command = ':DIG'
     
-    # define result parser
     def analog_waveform_parser(self,raw_waveform_array,y0,dy,yoffset):
         '''Parses the numpy array from the analog waveform query.'''
         return (raw_waveform_array - yoffset)*dy + y0
@@ -187,8 +51,6 @@ class KeysightMSOX3000Worker(VISAWorker):
         return int(error_return_string.split(',')[0]), error_return_string        
     
     def init(self):
-        # import h5py with locks
-        global h5py; import labscript_utils.h5_lock, h5py
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
         # Override the timeout for longer scope waits
@@ -198,7 +60,9 @@ class KeysightMSOX3000Worker(VISAWorker):
         ident_string = self.connection.query('*IDN?')
         if ('KEYSIGHT' in ident_string) and (self.model_ident in ident_string):
             # Scope supported!
-            pass
+            # If scope is a DSO-X 1000 series, need to use alternate digitize_command for some reason
+            if 'DSO-X 1' in ident_string:
+                self.dig_command = ':SING'
         else:
             raise LabscriptError('Device {0:s} with VISA name {0:s} not supported!'.format(ident_string,self.VISA_name))  
         

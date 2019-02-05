@@ -1,6 +1,11 @@
 #####################################################################
 #                                                                   #
-# /HP_8642A.py                                                      #
+# /naqslab_devices/SignalGenerator/BLACS/HP_8642A.py                #
+#                                                                   #
+# Copyright 2018, David Meyer                                       #
+#                                                                   #
+# This file is part of the naqslab devices extension to the         #
+# labscript_suite. It is licensed under the Simplified BSD License. #
 #                                                                   #
 #                                                                   #
 #####################################################################
@@ -9,22 +14,10 @@ from labscript_utils import PY2
 if PY2:
     str = unicode
 
-from naqslab_devices.SignalGenerator import *
-import labscript_utils.properties
+from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
+from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
 from labscript import LabscriptError
-        
-@labscript_device              
-class HP_8642A(SignalGenerator):
-    description = 'HP 8642A Signal Generator'
-    # define the scale factor - converts between BLACS front panel and 
-    # Writing: scale*desired_freq // Reading:desired_freq/scale
-    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (100e3, 1057.5e6) # set in scaled unit (Hz)
-    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
-    amp_limits = (-140, 20) # set in scaled unit (dBm)
-    # Output limits depend on frequency. Can be as low as 17 dBm
 
-@BLACS_tab
 class HP_8642ATab(SignalGeneratorTab):
     # Capabilities
     base_units = {'freq':'MHz', 'amp':'dBm'}
@@ -46,7 +39,6 @@ class HP_8642ATab(SignalGeneratorTab):
         self.device_worker_class = HP_8642AWorker
         SignalGeneratorTab.__init__(self,*args,**kwargs)      
 
-@BLACS_worker
 class HP_8642AWorker(SignalGeneratorWorker):
     # define the scale factor
     # Writing: scale*desired_freq // Reading:desired_freq/scale
