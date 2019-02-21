@@ -23,11 +23,11 @@ labscript_devices.register_classes(
     runviewer_parser='')
     
 labscript_devices.register_classes(
-    'HP8643A',
-    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP8643A.HP8643ATab',
+    'HP_8643A',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8643A.HP_8643ATab',
     runviewer_parser='')
     
 labscript_devices.register_classes(
-    'HP8642A',
-    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP8642A.HP8642ATab',
+    'HP_8642A',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8642A.HP_8642ATab',
     runviewer_parser='')
