@@ -352,6 +352,21 @@ class NovaTech440AWorker(NovaTech409BWorker):
             
         # populate the 'CURRENT_DATA' dictionary    
         self.check_remote_values()
+        
+    def program_static(self,channel,type,value):
+        """General output parameter programming function. Only sends one command
+        per use."""            
+        if type == 'freq':
+            command = b'F%d %.6f\r\n' % (channel,value) #only 6 decimal places for 440A
+        elif type == 'amp':
+            command = b'V%d %d\r\n' % (channel,int(value))
+        elif type == 'phase':
+            command = b'P%d %d\r\n' % (channel,int(value))
+        else:
+            raise TypeError(type)
+        self.connection.write(command)
+        if self.connection.readline() != b'OK\r\n':
+            raise Exception('Error: Failed to execute command: %s' % command.decode('utf8'))
 
     def check_remote_values(self):
         """The 440A Query command returns values in a different order and does
