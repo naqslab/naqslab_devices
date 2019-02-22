@@ -12,7 +12,7 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
+from labscript_utils import PY2, dedent
 if PY2:
     str = unicode
 
@@ -23,6 +23,7 @@ import time
 import numpy as np
 import serial
 import socket
+import traceback
 import labscript_utils.h5_lock, h5py
 
        
@@ -34,6 +35,17 @@ class NovaTech409B_ACWorker(Worker):
         self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': '',
                                 'CURRENT_DATA':None}
         self.baud_dict = {9600:b'78', 19200:b'3c', 38400:b'1e',57600:b'14',115200:b'0a'}
+        
+        self.err_codes = {b'?0':'Unrecognized Command',
+                          b'?1':'Bad Frequency',
+                          b'?2':'Bad AM Command',
+                          b'?3':'Input Line Too Long',
+                          b'?4':'Bad Phase',
+                          b'?5':'Bad Time',
+                          b'?6':'Bad Mode',
+                          b'?7':'Bad Amp',
+                          b'?8':'Bad Constant',
+                          b'?f':'Bad Byte'}
         
         # total number of DDS channels on device & channel properties
         self.N_chan = 4
@@ -123,12 +135,38 @@ class NovaTech409B_ACWorker(Worker):
         
         return connected, response
         
+    def check_error(response):
+        '''Parse response for errors and raise appropriate error.
+        If no error, returns response unaltered.'''
+        input_response = response
+        if type(response) != list:
+            response = list(response)
+
+        for line in response:
+            if b'?' in line:
+                # there is an error in the response, 
+                # get code number after ?
+                code = line.split(b'?',1)[-1][0]
+                try:
+                    msg = 'NovaTech DDS %s has error %s\n'%(
+                            self.VISA_name,self.err_codes[b'?'+code])
+                except KeyError:
+                    msg = 'NovaTech DDS %s has unrecognized error %s\n'%(
+                            self.VISA_name,line.decode('utf8'))
+                # clear the read buffer before breaking
+                self.connection.readlines()
+                raise Exception(dedent(msg)+traceback.format_exec())
+        
+        # if we didn't break, no error so return response
+        return input_response
+        
     def check_remote_values(self):
         """Queries device for current output settings. Return results as a 
         dictionary to update the BLACS tab."""
         self.connection.write(b'QUE\r\n')
         try:
             response = [self.connection.readline() for i in range(self.N_chan+1)]
+            self.check_error(response)
         except socket.timeout:
             raise Exception('Failed to execute command "QUE". Cannot connect to device.')
         results = {}
@@ -175,7 +213,7 @@ class NovaTech409B_ACWorker(Worker):
         else:
             raise TypeError(type)
         self.connection.write(command)
-        if self.connection.readline() != b'OK\r\n':
+        if self.check_error(self.connection.readline()) != b'OK\r\n':
             raise Exception('Error: Failed to execute command: %s' % command.decode('utf8'))
      
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):        
@@ -221,7 +259,7 @@ class NovaTech409B_ACWorker(Worker):
                 for ddsno in range(2):
                     if fresh or i >= len(oldtable) or (line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]) != (oldtable[i]['freq%d'%ddsno],oldtable[i]['phase%d'%ddsno],oldtable[i]['amp%d'%ddsno]):
                         self.connection.write(b't%d %04x %08x,%04x,%04x,ff\r\n'%(ddsno, i,line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]))
-                        self.connection.readline()
+                        self.check_error(self.connection.readline())
                 et = time.time()
                 tt=et-st
                 self.logger.debug('Time spent on line %s: %s' % (i,tt))
@@ -246,18 +284,18 @@ class NovaTech409B_ACWorker(Worker):
             
             # Transition to table mode:
             self.connection.write(b'm t\r\n')
-            self.connection.readline()
+            self.check_error(self.connection.readline())
             if self.update_mode == 'synchronous':
                 # Transition to hardware synchronous updates:
                 self.connection.write(b'I e\r\n')
-                self.connection.readline()
+                self.check_error(self.connection.readline())
                 # We are now waiting for a rising edge to trigger the output
                 # of the second table pair (first of the experiment)
             elif self.update_mode == 'asynchronous':
                 # Output will now be updated on falling edges.
                 pass
             else:
-                raise ValueError('invalid update mode %s' % str(self.update_mode))
+                raise ValueError('invalid update mode %s'%self.update_mode.decode('utf8'))
                 
             
         return self.final_values
@@ -363,7 +401,7 @@ class NovaTech440AWorker(NovaTech409BWorker):
         else:
             raise TypeError(type)
         self.connection.write(command)
-        if self.connection.readline() != b'OK\r\n':
+        if self.check_error(self.connection.readline()) != b'OK\r\n':
             raise Exception('Error: Failed to execute command: %s' % command.decode('utf8'))
 
     def check_remote_values(self):
@@ -372,7 +410,7 @@ class NovaTech440AWorker(NovaTech409BWorker):
         # Get the currently output values:
         self.connection.write(b'QUE\r\n')
         try:
-            response = self.connection.readline()
+            response = self.check_error(self.connection.readline())
         except socket.timeout:
             raise Exception('Failed to execute command "QUE". Cannot connect to device.')
         
