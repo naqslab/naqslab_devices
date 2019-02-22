@@ -84,7 +84,7 @@ class NovaTech409B_ACWorker(Worker):
             self.connection.baudrate = self.baud_rate
             connected, response = self.check_connection()
             if not connected:
-                raise LabscriptError('Error: Failed to execute command %s' % baud_string)           
+                raise LabscriptError('Error: Failed to execute command "%s"' % baud_string.decode('utf8'))           
         
         self.connection.write(b'e d\r\n')
         response = self.connection.readline()
@@ -358,8 +358,6 @@ class NovaTech440AWorker(NovaTech409BWorker):
         per use."""            
         if type == 'freq':
             command = b'F%d %.6f\r\n' % (channel,value) #only 6 decimal places for 440A
-        elif type == 'amp':
-            command = b'V%d %d\r\n' % (channel,int(value))
         elif type == 'phase':
             command = b'P%d %d\r\n' % (channel,int(value))
         else:
