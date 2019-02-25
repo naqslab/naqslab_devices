@@ -50,8 +50,8 @@ class NovaTech409B_AC(IntermediateDevice):
         '''Labscript device class for NovaTech 409B-AC variant DDS.
         This device has two dynamic channels (0,1) and two static 
         channels (2,3). If an external clock frequency is enabled, 
-        and /R option is not being used, clk_freq (in MHz) and kp (int)
-        must also be defined.'''
+        and /R option is not being used, clk_freq (in MHz) 
+        and clk_mult (int) must also be defined.'''
 
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
         self.BLACS_connection = '%s,%s' % (com_port, str(baud_rate))
@@ -73,7 +73,7 @@ class NovaTech409B_AC(IntermediateDevice):
         self.clk_scale = self.clock_check()
         
     def clock_check(self):
-        """Checks to make sure kp and clk_freq have valid values, 
+        """Checks to make sure clk_mult and clk_freq have valid values, 
         as determined by the Novatech documentation.
         Returns the correct frequency scaling factor to 
         account for different clocking options."""
@@ -100,7 +100,7 @@ class NovaTech409B_AC(IntermediateDevice):
         try:
             f = self.clk_mult*self.clk_freq
         except TypeError:
-            msg = '''Must supply external clock frequency and kp 
+            msg = '''Must supply external clock frequency and clock 
             multiplier when using external clock!'''
             raise LabscriptError(dedent(msg))
         
@@ -111,12 +111,12 @@ class NovaTech409B_AC(IntermediateDevice):
             # Check frequency range for kp = 1
             if f < 1 or 500 < f:
                 msg = '''Supplied clock frequency (%f MHz) 
-                with Kp = 1 must be between 1 and 500 MHz.'''
+                with clk_mult = 1 must be between 1 and 500 MHz.'''
                 msg = dedent(msg) % f
                 raise LabscriptError(msg) 
             # No need to change fre
         elif self.clk_mult in range(4,21):
-            # Check if f is a good value and modify clk_scale if so
+            # Check if f is a good value and modify kp if so
             if 100 <= f and f <= 160 :
                 # Must add 64 to decimal value. See 4.10 Range bit in the documentation
                 self.kp += 64               
@@ -125,7 +125,7 @@ class NovaTech409B_AC(IntermediateDevice):
                 self.kp += 128
             else:
                 msg = '''Derived system clock frequency 
-                (kP*clk_freq = %f MHz) using the clock multiplier 
+                (clk_mult*clk_freq = %f MHz) using the clock multiplier 
                 must be between (100,160) or (255,500) MHz.'''
                 msg = dedent(msg) % f
                 raise LabscriptError(msg)
