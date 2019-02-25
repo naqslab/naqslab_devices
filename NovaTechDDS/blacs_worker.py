@@ -106,9 +106,9 @@ class NovaTech409B_ACWorker(Worker):
         if response != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "e d". Cannot connect to the device.')
         
-        self.connection.write(b'I a\r\n')
-        if self.connection.readline() != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: "I a"')
+        # set automatic updates and phase mode
+        self.write_check(b'I a\r\n')
+        self.write_check(b'%s\r\n'%self.phase_mode_command)
         
         self.connection.write(b'%s\r\n'%self.phase_mode_command)
         if self.connection.readline() != b'OK\r\n':
@@ -135,30 +135,34 @@ class NovaTech409B_ACWorker(Worker):
         
         return connected, response
         
-    def check_error(response):
+    def write_check(self,command):
+        '''Sends command and checks and confirms proper execution
+        by reading 'OK' from device.'''
+        self.connection.write(command)
+        response = self.check_error(self.connection.readline())
+        if response != b'OK\r\n':
+            msg = '''Command "%s" did not execute properly.'''%command.decode('utf8')
+            raise Exception(dedent(msg)+traceback.format_exec())
+        
+    def check_error(self,response):
         '''Parse response for errors and raise appropriate error.
         If no error, returns response unaltered.'''
-        input_response = response
-        if type(response) != list:
-            response = list(response)
-
-        for line in response:
-            if b'?' in line:
-                # there is an error in the response, 
-                # get code number after ?
-                code = line.split(b'?',1)[-1][0]
-                try:
-                    msg = 'NovaTech DDS %s has error %s\n'%(
-                            self.VISA_name,self.err_codes[b'?'+code])
-                except KeyError:
-                    msg = 'NovaTech DDS %s has unrecognized error %s\n'%(
-                            self.VISA_name,line.decode('utf8'))
-                # clear the read buffer before breaking
-                self.connection.readlines()
-                raise Exception(dedent(msg)+traceback.format_exec())
+        if b'?' in response:
+            # there is an error in the response, 
+            # get code number after ?
+            code = line.split(b'?',1)[-1][0]
+            try:
+                msg = 'NovaTech DDS %s has error %s\n'%(
+                        self.VISA_name,self.err_codes[b'?'+code])
+            except KeyError:
+                msg = 'NovaTech DDS %s has unrecognized error %s\n'%(
+                        self.VISA_name,line.decode('utf8'))
+            # clear the read buffer before breaking
+            self.connection.readlines()
+            raise Exception(dedent(msg)+traceback.format_exec())
         
         # if we didn't break, no error so return response
-        return input_response
+        return response
         
     def check_remote_values(self):
         """Queries device for current output settings. Return results as a 
@@ -166,7 +170,6 @@ class NovaTech409B_ACWorker(Worker):
         self.connection.write(b'QUE\r\n')
         try:
             response = [self.connection.readline() for i in range(self.N_chan+1)]
-            self.check_error(response)
         except socket.timeout:
             raise Exception('Failed to execute command "QUE". Cannot connect to device.')
         results = {}
@@ -202,8 +205,8 @@ class NovaTech409B_ACWorker(Worker):
         return self.check_remote_values()
 
     def program_static(self,channel,type,value):
-        """General output parameter programming function. Only sends one command
-        per use."""            
+        """General output parameter programming function. 
+        Only sends one command per use."""            
         if type == 'freq':
             command = b'F%d %.7f\r\n' % (channel,value)
         elif type == 'amp':
@@ -212,9 +215,8 @@ class NovaTech409B_ACWorker(Worker):
             command = b'P%d %d\r\n' % (channel,int(value))
         else:
             raise TypeError(type)
-        self.connection.write(command)
-        if self.check_error(self.connection.readline()) != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: %s' % command.decode('utf8'))
+        
+        self.write_check(command)
      
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):        
         # Store the initial values in case we have to abort and restore them:
@@ -259,7 +261,7 @@ class NovaTech409B_ACWorker(Worker):
                 for ddsno in range(2):
                     if fresh or i >= len(oldtable) or (line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]) != (oldtable[i]['freq%d'%ddsno],oldtable[i]['phase%d'%ddsno],oldtable[i]['amp%d'%ddsno]):
                         self.connection.write(b't%d %04x %08x,%04x,%04x,ff\r\n'%(ddsno, i,line['freq%d'%ddsno],line['phase%d'%ddsno],line['amp%d'%ddsno]))
-                        self.check_error(self.connection.readline())
+                        self.check_error(self.connection.readline()) # speed this up by block writing and reading and don't check errors
                 et = time.time()
                 tt=et-st
                 self.logger.debug('Time spent on line %s: %s' % (i,tt))
@@ -283,12 +285,10 @@ class NovaTech409B_ACWorker(Worker):
             self.final_values['channel 1']['phase'] = data[-1]['phase1']*self.read_conv['phase']
             
             # Transition to table mode:
-            self.connection.write(b'm t\r\n')
-            self.check_error(self.connection.readline())
+            self.write_check(b'm t\r\n')
             if self.update_mode == 'synchronous':
                 # Transition to hardware synchronous updates:
-                self.connection.write(b'I e\r\n')
-                self.check_error(self.connection.readline())
+                self.write_check(b'I e\r\n')
                 # We are now waiting for a rising edge to trigger the output
                 # of the second table pair (first of the experiment)
             elif self.update_mode == 'asynchronous':
@@ -308,12 +308,9 @@ class NovaTech409B_ACWorker(Worker):
         return self.transition_to_manual(True)
     
     def transition_to_manual(self,abort = False):
-        self.connection.write(b'%s\r\n'%self.phase_mode_command)
-        if self.connection.readline() != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: "%s"'%self.phase_mode_command.decode('utf8'))
-        self.connection.write(b'I a\r\n')
-        if self.connection.readline() != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: "I a"')
+        self.write_check(b'%s\r\n'%self.phase_mode_command)
+        self.write_check(b'I a\r\n')
+
         if abort:
             # If we're aborting the run, then we need to reset DDSs 2 and 3 to their initial values.
             # 0 and 1 will already be in their initial values. We also need to invalidate the smart
@@ -373,7 +370,7 @@ class NovaTech440AWorker(NovaTech409BWorker):
         self.conv = {'freq':10**(-6),'phase':16384.0/360.0}
         # and from transition_to_buffered
         self.conv_buffered = {'freq':10**(-6),'phase':1}
-        # read from device conversion, basically conv/conv_buffered
+        # read from device conversion, nominally conv_buffered/conv
         self.read_conv = {'freq':1/4.0,'phase':360.0/16384.0}
         
         self.connection = serial.Serial(self.com_port, baudrate = self.baud_rate, timeout=0.1)
@@ -400,9 +397,7 @@ class NovaTech440AWorker(NovaTech409BWorker):
             command = b'P%d %d\r\n' % (channel,int(value))
         else:
             raise TypeError(type)
-        self.connection.write(command)
-        if self.check_error(self.connection.readline()) != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: %s' % command.decode('utf8'))
+        self.write_check(command)
 
     def check_remote_values(self):
         """The 440A Query command returns values in a different order and does
@@ -417,8 +412,7 @@ class NovaTech440AWorker(NovaTech409BWorker):
         results = {}
         results['channel 0'] = {}
         phase, freq, ignore, ignore, ignore, ignore = response.split()
-        # Convert hex multiple of 4 Hz to Hz:
-        # needs /4 for some reason to convert correctly
+        # Convert hex multiple in 0.25 Hz units to Hz:
         results['channel 0']['freq'] = float(int(freq,16))*self.read_conv['freq']
 
         # Convert hex fraction of 16384 to degrees:
