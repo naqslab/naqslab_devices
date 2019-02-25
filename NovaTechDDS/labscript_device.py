@@ -13,7 +13,7 @@
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
 import traceback
-from labscript_utils import PY2
+from labscript_utils import PY2, dedent
 if PY2:
     str = unicode
 
@@ -36,14 +36,22 @@ class NovaTech409B_AC(IntermediateDevice):
 
     @set_passed_properties(
         property_names = {'connection_table_properties': ['update_mode',
-                            'synchronous_first_line_repeat', 'phase_mode']}
+                            'synchronous_first_line_repeat', 
+                            'phase_mode', 'ext_clk', 'clk_freq', 'kp',
+                            'R_option', 'clk_scale']}
         )
     def __init__(self, name, parent_device, 
                  com_port = "", baud_rate=19200, 
                  update_mode='synchronous', synchronous_first_line_repeat=False, 
-                 phase_mode='default', **kwargs):
+                 phase_mode='default', 
+                 ext_clk=False, clk_freq=None, clk_mult=None,
+                 R_option=False,
+                 **kwargs):
         '''Labscript device class for NovaTech 409B-AC variant DDS.
-        This device has two dynamic channels (0,1) and two static channels (2,3).'''
+        This device has two dynamic channels (0,1) and two static 
+        channels (2,3). If an external clock frequency is enabled, 
+        and /R option is not being used, clk_freq (in MHz) and kp (int)
+        must also be defined.'''
 
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
         self.BLACS_connection = '%s,%s' % (com_port, str(baud_rate))
@@ -56,7 +64,74 @@ class NovaTech409B_AC(IntermediateDevice):
         self.update_mode = update_mode
         self.phase_mode = phase_mode
         self.synchronous_first_line_repeat = synchronous_first_line_repeat        
+        self.ext_clk = ext_clk
+        self.clk_freq = clk_freq
+        self.R_option = R_option
+        self.clk_mult = clk_mult   
+    
+        # validate clocking parameters and get frequency scaling factor
+        self.clk_scale = self.clock_check()
         
+    def clock_check(self):
+        """Checks to make sure kp and clk_freq have valid values, 
+        as determined by the Novatech documentation.
+        Returns the correct frequency scaling factor to 
+        account for different clocking options."""
+        
+        # Check R option. If true, then exit method
+        if self.R_option:
+           # Using 409b with /R option. Do nothing else
+           # Requires 10 MHz external clock.
+           clk_scale = 1 
+           return clk_scale                         
+              
+        # R option not used. Check external clock
+        if not self.ext_clk:
+            # using internal clock or R option
+            # set default values for kp, clk_freq, and clk_scale
+            self.clk_freq = 28.6331153067
+            if self.clk_mult == None:
+                # use default value of kp
+                self.kp = 15
+                clk_scale = 1
+                return clk_scale            
+                
+        # Check that kp and clk_freq were supplied        
+        try:
+            f = self.clk_mult*self.clk_freq
+        except TypeError:
+            msg = '''Must supply external clock frequency and kp 
+            multiplier when using external clock!'''
+            raise LabscriptError(dedent(msg))
+        
+        self.kp = self.clk_mult
+        
+        # Check that self.kp is valid, then frequency is valid. Also return modified clock multiplier
+        if self.clk_mult == 1:
+            # Check frequency range for kp = 1
+            if f < 1 or 500 < f:
+                msg = '''Supplied clock frequency (%f MHz) 
+                with Kp = 1 must be between 1 and 500 MHz.'''
+                msg = dedent(msg) % f
+                raise LabscriptError(msg) 
+            # No need to change fre
+        elif self.clk_mult in range(4,21):
+            # Check if f is a good value and modify clk_scale if so
+            if 100 <= f and f <= 160 :
+                # Must add 64 to decimal value. See 4.10 Range bit in the documentation
+                self.kp += 64               
+            elif 255 <= f and f <= 500:
+                # Must add 128 to decimal value. See 4.10 Range bit in the documentation
+                self.kp += 128
+            else:
+                msg = '''Derived system clock frequency 
+                (kP*clk_freq = %f MHz) using the clock multiplier 
+                must be between (100,160) or (255,500) MHz.'''
+                msg = dedent(msg) % f
+                raise LabscriptError(msg)
+        clk_scale = 429.4967296/(self.clk_mult*self.clk_freq) 
+        return clk_scale
+           
     def add_device(self, device):
         Device.add_device(self, device)
         # The Novatech doesn't support 0Hz output; set the default frequency of the DDS to 0.1 Hz:
@@ -84,9 +159,11 @@ class NovaTech409B_AC(IntermediateDevice):
             raise LabscriptError('%s %s ' % (device.description, device.name) +
                               'can only have frequencies between 0.1Hz and 171MHz, ' + 
                               'the limit imposed by %s.' % self.name)
+        # Factor of 10 is to convert to units of 0.1 Hz. 
+        scale_factor = 10*self.clk_scale # Need to multiply by clk scale factor
+
         # It's faster to add 0.5 then typecast than to round to integers first:
-        data = np.array((10*data)+0.5,dtype=np.uint32)
-        scale_factor = 10
+        data = np.array((scale_factor*data)+0.5,dtype=np.uint32)
         return data, scale_factor
         
     def quantise_phase(self, data, device):
@@ -237,11 +314,13 @@ class NovaTech409B(NovaTech409B_AC):
     # this is not a triggerable device
     
     @set_passed_properties(
-        property_names = {'connection_table_properties': ['phase_mode']})
-
+        property_names = {'connection_table_properties': ['phase_mode',
+                          'ext_clk', 'clk_freq', 'kp',
+                          'R_option', 'clk_scale']})
     def __init__(self, name,
                  com_port = "", baud_rate=19200, 
-                 phase_mode='default', **kwargs):
+                 phase_mode='default', R_option=False,
+                 ext_clk=False, clk_freq=None, clk_mult=None, **kwargs):
         '''Labscript class for NovaTech 409B DDS.
         This device has four static DDS output channels.'''
 
@@ -252,6 +331,12 @@ class NovaTech409B(NovaTech409B_AC):
             raise LabscriptError('phase_mode must be \'default\', \'aligned\' or \'continuous\'')
             
         self.phase_mode = phase_mode
+        self.R_option = R_option
+        self.ext_clk = ext_clk
+        self.clk_mult = clk_mult
+        self.clk_freq = clk_freq
+        
+        self.clk_scale = self.clock_check()
         
     def generate_code(self, hdf5_file):
         """Modified version of 409B-AC generate_code that only handles static
@@ -307,14 +392,27 @@ class NovaTech440A(NovaTech409B_AC):
     allowed_children = [StaticDDS]
     clock_limit = 1
     # this is not a triggerable device
-
+    @set_passed_properties(
+        property_names = {'connection_table_properties': [
+                          'ext_clk', 'clk_freq','clk_scale']})
     def __init__(self, name,
-                 com_port = "", baud_rate=19200, **kwargs):
+                 com_port = "", baud_rate=19200, 
+                 ext_clk=False, clk_freq=None, **kwargs):
         """Labscript class for Novatech 440A DDS. This is a high frequency
         DDS with single channel output that does not support amplitude control"""
 
         Device.__init__(self, name, None, com_port, **kwargs)
         self.BLACS_connection = '{:s},{:s}'.format(com_port, str(baud_rate))
+        
+        if ext_clk and (clk_freq >= 1 and clk_freq <= 25):
+            msg = '''Must define clk_freq (in MHz) if using an external clock.
+            Supplied frequency must be between 1 and 25 MHz. Device
+            rounds down to nearest 8 kHz multiple.'''
+            raise LabscriptError(dedent(msg))
+        self.ext_clk = ext_clk
+        self.clk_freq = clk_freq
+        
+        self.clk_scale = 1
 
     def add_device(self, device):
         Device.add_device(self, device)

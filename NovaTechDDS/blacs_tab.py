@@ -53,6 +53,7 @@ class NovaTech409B_ACTab(DeviceTab):
         self.auto_place_widgets(("DDS Outputs",dds_widgets))
         
         connection_object = self.settings['connection_table'].find_by_name(self.device_name)
+        conn_properties = connection_object.properties
         
         # Store the COM port to be used
         blacs_connection =  str(connection_object.BLACS_connection)
@@ -63,14 +64,23 @@ class NovaTech409B_ACTab(DeviceTab):
             self.com_port = blacs_connection
             self.baud_rate = 19200
         
-        self.update_mode = connection_object.properties.get('update_mode', 'synchronous')
-        self.phase_mode = connection_object.properties.get('phase_mode', 'default')
+        self.update_mode = conn_properties.get('update_mode', 'synchronous')
+        self.phase_mode = conn_properties.get('phase_mode', 'default')
+        # clocking properties
+        self.R_option = conn_properties.get('R_option',False)
+        self.ext_clk = conn_properties.get('ext_clk',False)
+        self.kp = conn_properties.get('kp',None)
+        self.clk_scale = conn_properties.get('clk_scale',1)
         
         # Create and set the primary worker
         worker_init_kwargs = {'com_port': self.com_port,
                               'baud_rate': self.baud_rate,
                               'update_mode': self.update_mode,
-                              'phase_mode': self.phase_mode}
+                              'phase_mode': self.phase_mode,
+                              'R_option': self.R_option,
+                              'ext_clk': self.ext_clk,
+                              'kp': self.kp,
+                              'clk_scale': self.clk_scale}
         self.create_worker("main_worker",
                            self.device_worker_class,
                            worker_init_kwargs)
@@ -122,6 +132,7 @@ class NovaTech440ATab(NovaTech409B_ACTab):
         self.auto_place_widgets(("DDS Outputs",dds_widgets))
         
         connection_object = self.settings['connection_table'].find_by_name(self.device_name)
+        conn_properties = connection_object.properties
         
         # Store the COM port to be used
         blacs_connection =  str(connection_object.BLACS_connection)
@@ -131,11 +142,19 @@ class NovaTech440ATab(NovaTech409B_ACTab):
         else:
             self.com_port = blacs_connection
             self.baud_rate = 19200
+            
+        self.ext_clk = conn_properties.get('ext_clk',False)
+        self.clk_freq = conn_properties.get('clk_freq', None)
+        self.clk_scale = conn_properties.get('clk_scale',1)
         
         # Create and set the primary worker
-        self.create_worker("main_worker",self.device_worker_class,{'com_port':self.com_port,
-                                                              'baud_rate': self.baud_rate
-                                                              })
+        self.create_worker("main_worker",self.device_worker_class,
+                                {'com_port':self.com_port,
+                                'baud_rate': self.baud_rate,
+                                'ext_clk': self.ext_clk,
+                                'clk_freq': self.clk_freq,
+                                'clk_scale': self.clk_scale
+                                })
         self.primary_worker = "main_worker"
 
         # Set the capabilities of this device
