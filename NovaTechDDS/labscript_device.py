@@ -334,7 +334,7 @@ class NovaTech440A(NovaTech409B_AC):
             raise LabscriptError(msg)
         # It's faster to add 0.5 then typecast than to round to integers first:
         data = np.array((data)+0.5,dtype=np.uint32)
-        scale_factor = 10
+        scale_factor = 1
         return data, scale_factor
         
     def generate_code(self, hdf5_file):
