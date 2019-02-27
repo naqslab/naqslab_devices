@@ -262,7 +262,7 @@ class NovaTech409B_ACWorker(Worker):
                         if value == curr_value:
                             continue
                         self.program_static(i,subchnl,value)
-                        self.final_values['channel %d' % i][subchnl] = value/self.conv[subchnl]
+                        self.final_values['channel %d' % i][subchnl] = round(value/self.conv[subchnl],1)
                     
         # Now program the buffered outputs:
         if table_data is not None:
@@ -289,8 +289,8 @@ class NovaTech409B_ACWorker(Worker):
             # reflect them after the run:
             self.final_values['channel 0'] = {}
             self.final_values['channel 1'] = {}
-            self.final_values['channel 0']['freq'] = data[-1]['freq0']*self.read_conv['freq']
-            self.final_values['channel 1']['freq'] = data[-1]['freq1']*self.read_conv['freq']
+            self.final_values['channel 0']['freq'] = round(data[-1]['freq0']*self.read_conv['freq'],1)
+            self.final_values['channel 1']['freq'] = round(data[-1]['freq1']*self.read_conv['freq'],1)
             self.final_values['channel 0']['amp'] = data[-1]['amp0']*self.read_conv['amp']
             self.final_values['channel 1']['amp'] = data[-1]['amp1']*self.read_conv['amp']
             self.final_values['channel 0']['phase'] = data[-1]['phase0']*self.read_conv['phase']
