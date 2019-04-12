@@ -162,13 +162,13 @@ class NovaTech409B_ACWorker(Worker):
         if b'?' in response:
             # there is an error in the response, 
             # get code number after ?
-            code = line.split(b'?',1)[-1][0]
+            code = response.split(b'?',1)[-1][0]
             try:
                 msg = 'NovaTech DDS %s has error %s\n'%(
                         self.VISA_name,self.err_codes[b'?'+code])
             except KeyError:
                 msg = 'NovaTech DDS %s has unrecognized error %s\n'%(
-                        self.VISA_name,line.decode('utf8'))
+                        self.VISA_name,response.decode('utf8'))
             # clear the read buffer before breaking
             self.connection.readlines()
             raise Exception(dedent(msg)+traceback.format_exec())
