@@ -262,7 +262,10 @@ class NovaTech409B_ACWorker(Worker):
                         if value == curr_value:
                             continue
                         self.program_static(i,subchnl,value)
-                        self.final_values['channel %d' % i][subchnl] = round(value/self.conv[subchnl],1)
+                        if subchnl == 'freq':
+                            self.final_values['channel %d' % i][subchnl] = round(value/self.conv[subchnl],1)
+                        else:
+                            self.final_values['channel %d' % i][subchnl] = value/self.conv[subchnl]
                     
         # Now program the buffered outputs:
         if table_data is not None:
