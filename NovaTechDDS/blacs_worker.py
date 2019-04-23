@@ -249,8 +249,10 @@ class NovaTech409B_ACWorker(Worker):
                         value = data[subchnl+str(i)]*self.conv_buffered[subchnl]
                         if value == curr_value:
                             continue
-                        self.program_static(i,subchnl,value)
-                        self.final_values['channel %d' % i][subchnl] = value/self.conv[subchnl]
+                        else:
+                            self.program_static(i,subchnl,value)
+                            self.final_values['channel %d'%i][subchnl] = value/self.conv[subchnl]
+                            self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl] = curr_value*self.read_conv[subchnl]
                     
         # Now program the buffered outputs:
         if table_data is not None:
