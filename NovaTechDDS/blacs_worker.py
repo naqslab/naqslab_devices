@@ -23,7 +23,6 @@ import time
 import numpy as np
 import serial
 import socket
-import traceback
 import labscript_utils.h5_lock, h5py
 
        
@@ -142,7 +141,7 @@ class NovaTech409B_ACWorker(Worker):
         response = self.check_error(self.connection.readline())
         if response != b'OK\r\n':
             msg = '''Command "%s" did not execute properly.'''%command.decode('utf8')
-            raise Exception(dedent(msg)+traceback.format_exec())
+            raise Exception(dedent(msg))
         
     def check_error(self,response):
         '''Parse response for errors and raise appropriate error.
@@ -152,14 +151,14 @@ class NovaTech409B_ACWorker(Worker):
             # get code number after ?
             code = response.split(b'?',1)[-1][0]
             try:
-                msg = 'NovaTech DDS %s has error %s\n'%(
-                        self.VISA_name,self.err_codes[b'?'+code])
+                msg = 'NovaTech DDS at %s has error %s\n'%(
+                        self.com_port,self.err_codes[b'?'+code])
             except KeyError:
-                msg = 'NovaTech DDS %s has unrecognized error %s\n'%(
-                        self.VISA_name,response.decode('utf8'))
+                msg = 'NovaTech DDS at %s has unrecognized error %s\n'%(
+                        self.com_port,response.decode('utf8'))
             # clear the read buffer before breaking
             self.connection.readlines()
-            raise Exception(dedent(msg)+traceback.format_exec())
+            raise Exception(dedent(msg))
         
         # if we didn't break, no error so return response
         return response

@@ -12,7 +12,6 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
-import traceback
 from labscript_utils import PY2
 if PY2:
     str = unicode
@@ -330,7 +329,7 @@ class NovaTech440A(NovaTech409B_AC):
             msg = """%s %s
             can only have frequencies between 200kHz and 402MHz,
             this limit imposed by %s."""
-            msg = dedent(msg) % (device.description, device.name, self.name) + traceback.format_exc()
+            msg = dedent(msg) % (device.description, device.name, self.name)
             raise LabscriptError(msg)
         # It's faster to add 0.5 then typecast than to round to integers first:
         data = np.array((data)+0.5,dtype=np.uint32)
