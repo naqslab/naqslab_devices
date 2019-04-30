@@ -21,6 +21,7 @@ from labscript import IntermediateDevice, DDS, StaticDDS, Device, config, Labscr
 from labscript_utils.unitconversions import NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion
 
 import numpy as np
+import warnings
 import labscript_utils.h5_lock, h5py
 
 __version__ = '1.0.0'
@@ -71,12 +72,17 @@ class NovaTech409B_AC(IntermediateDevice):
     
         # validate clocking parameters and get frequency scaling factor
         self.clk_scale = self.clock_check()
+        # save dds reference frequency, defined as clk_freq*clk_mult
+        self.set_property('reference_frequency', self.ref_freq, location='device_properties') 
         
     def clock_check(self):
         """Checks to make sure clk_mult and clk_freq have valid values, 
         as determined by the Novatech documentation.
         Returns the correct frequency scaling factor to 
         account for different clocking options."""
+        # hard-coded default values when using the internal clock
+        int_clock = 28.6331153067
+        int_ref = 429.4967296
         
         # Check R option. If true, then exit method
         if self.R_option:
@@ -89,12 +95,18 @@ class NovaTech409B_AC(IntermediateDevice):
         if not self.ext_clk:
             # using internal clock or R option
             # set default values for kp, clk_freq, and clk_scale
-            self.clk_freq = 28.6331153067
+            self.clk_freq = int_clock
             if self.clk_mult == None:
                 # use default value of kp
                 self.kp = 15
+                self.ref_freq = int_ref
                 clk_scale = 1
-                return clk_scale            
+                return clk_scale
+            else:
+                msg = '''Novatech DDS at %s is attempting to use the internal
+                clock with non-default clock multiplier %d. Are you sure?'''
+                msg = dedent(msg) % (self.BLACS_connection, self.clk_mult)
+                warnings.warn(msg, stacklevel=2)
                 
         # Check that kp and clk_freq were supplied        
         try:
@@ -105,6 +117,7 @@ class NovaTech409B_AC(IntermediateDevice):
             raise LabscriptError(dedent(msg))
         
         self.kp = self.clk_mult
+        self.ref_freq = f
         
         # Check that self.kp is valid, then frequency is valid. Also return modified clock multiplier
         if self.clk_mult == 1:
@@ -129,7 +142,7 @@ class NovaTech409B_AC(IntermediateDevice):
                 must be between (100,160) or (255,500) MHz.'''
                 msg = dedent(msg) % f
                 raise LabscriptError(msg)
-        clk_scale = 429.4967296/(self.clk_mult*self.clk_freq) 
+        clk_scale = int_ref/(self.clk_mult*self.clk_freq)
         return clk_scale
            
     def add_device(self, device):
