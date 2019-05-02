@@ -86,6 +86,8 @@ class NovaTech409B_ACWorker(Worker):
                 if connected:
                     # found it!
                     break
+            else:
+                raise LabscriptError('Error: Baud rate not found! Is Novatech DDS connected?')
             
             # now we can set the desired baud rate
             baud_string = b'Kb %s\r\n' % (self.baud_dict[self.baud_rate])
