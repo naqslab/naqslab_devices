@@ -57,3 +57,43 @@ class HP_8642A(SignalGenerator):
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (-140, 20) # set in scaled unit (dBm)
     # Output limits depend on frequency. Can be as low as 17 dBm
+
+class HP_8648A(SignalGenerator):
+    description = 'HP 8648A Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (100e3, 1000e6) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-136, 20) # set in scaled unit (dBm)
+    # Output limits depend on frequency. Can be as low as 10 dBm
+    
+class HP_8648B(SignalGenerator):
+    description = 'HP 8648B Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (9e3, 2000) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-136, 20) # set in scaled unit (dBm)
+    # Output limits depend on frequency. Can be as low as 10 dBm
+    
+class HP_8648C(SignalGenerator):
+    description = 'HP 8648C Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (9e3, 3200) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-136, 20) # set in scaled unit (dBm)
+    # Output limits depend on frequency. Can be as low as 10 dBm
+    
+class HP_8648D(SignalGenerator):
+    description = 'HP 8648D Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (9e3, 4000) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-136, 20) # set in scaled unit (dBm)
+    # Output limits depend on frequency. Can be as low as 10 dBm

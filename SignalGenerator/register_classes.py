@@ -31,3 +31,23 @@ labscript_devices.register_classes(
     'HP_8642A',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8642A.HP_8642ATab',
     runviewer_parser='')
+
+labscript_devices.register_classes(
+    'HP_8648A',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8648.HP_8648ATab',
+    runviewer_parser='')
+    
+labscript_devices.register_classes(
+    'HP_8648B',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8648.HP_8648BTab',
+    runviewer_parser='')
+    
+labscript_devices.register_classes(
+    'HP_8648C',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8648.HP_8648CTab',
+    runviewer_parser='')
+    
+labscript_devices.register_classes(
+    'HP_8648D',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8648.HP_8648DTab',
+    runviewer_parser='')
