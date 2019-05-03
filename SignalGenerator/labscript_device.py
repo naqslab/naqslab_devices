@@ -10,7 +10,7 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
+from labscript_utils import PY2, dedent
 if PY2:
     str = unicode
 
@@ -52,8 +52,11 @@ class SignalGenerator(VISA):
         
         # Ensure that frequencies are within bounds:
         if any(data < self.freq_limits[0] )  or any(data > self.freq_limits[1] ):
-            raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
-                                'can only have frequencies between {:E}Hz and {:E}Hz'.format(*self.freq_limits))
+            msg = '''{:s} {:s} can only have frequencies between 
+                {:E}Hz and {:E}Hz, {} given'''.format(device.description, 
+                                        device.name, *self.freq_limits,
+                                        data)
+            raise LabscriptError(dedent(msg))
         return data, self.scale_factor
         
     def quantise_amp(self,data, device):
@@ -63,8 +66,11 @@ class SignalGenerator(VISA):
 
         # Ensure that amplitudes are within bounds:        
         if any(data < self.amp_limits[0] )  or any(data > self.amp_limits[1] ):
-            raise LabscriptError('{:s} {:s} '.format(device.description, device.name) +
-                              'can only have amplitudes between {:.1f}dBm and {:.1f}dBm'.format(*self.amp_limits))
+            msg = '''{:s} {:s} can only have amplitudes between 
+                {:.1f} dBm and {:.1f} dBm, {} given'''.format(device.description, 
+                                                device.name,*self.amp_limits,
+                                                data)
+            raise LabscriptError(dedent(msg))
         return data, self.amp_scale_factor
     
     def generate_code(self, hdf5_file):
@@ -73,11 +79,15 @@ class SignalGenerator(VISA):
                 prefix, channel = output.connection.split()
                 channel = int(channel)
             except:
-                raise LabscriptError('{:s} {:s} has invalid connection string: \'{!s}\'. '.format(output.description,output.name,output.connection) + 
-                                     'Format must be \'channel n\' with n equal 0.')
+                msg = '''{:s} {:s} has invalid connection string: \'{!s}\'.
+                Format must be \'channel n\' with n equal 0.'''
+                raise LabscriptError(dedent(msg.format(output.description,
+                                            output.name,output.connection)))
             if channel != 0:
-                raise LabscriptError('{:s} {:s} has invalid connection string: \'{!s}\'. '.format(output.description,output.name,output.connection) + 
-                                     'Format must be \'channel n\' with n equal 0.')
+                msg = '''{:s} {:s} has invalid connection string: \'{!s}\'.
+                Format must be \'channel n\' with n equal 0.'''
+                raise LabscriptError(dedent(msg.format(output.description,
+                                            output.name,output.connection)))
             dds = output
         # Call these functions to finalise stuff:
         ignore = dds.frequency.get_change_times()

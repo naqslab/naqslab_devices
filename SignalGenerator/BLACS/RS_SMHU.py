@@ -10,7 +10,7 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
+from labscript_utils import PY2, dedent
 if PY2:
     str = unicode
 
@@ -50,7 +50,16 @@ class RS_SMHUWorker(SignalGeneratorWorker):
         SignalGeneratorWorker.init(self)
         
         # enables ESR status reading
-        self.connection.write('HEADER:OFF;*ESE 60;*SRE 32;*CLS')
+        try:
+            # this is first command to device, 
+            # if failure then it probably isn't connected
+            self.connection.write('HEADER:OFF;*ESE 60;*SRE 32;*CLS')
+        except:
+            msg = 'Initial command to %s did not succeed. Is it connected?'
+            if PY2:
+                raise LabscriptError(dedent(msg%self.VISA_name))
+            else:    
+                raise LabscriptError(dedent(msg%self.VISA_name)) from None
         self.esr_mask = 60
     
     # define instrument specific read and write strings for Freq & Amp control

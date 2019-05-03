@@ -10,7 +10,7 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
+from labscript_utils import PY2, dedent
 if PY2:
     str = unicode
 
@@ -81,8 +81,9 @@ class HP_8643AWorker(SignalGeneratorWorker):
             # Still need to inform user of issue
             if err_string.endswith('0'):
                 err_string = 'Event Status Register: {0:d}'.format(esr)
-            else:
-                raise LabscriptError('HP 8643A device {0:s} has \n{1:s}'.format(self.VISA_name,err_string)) 
+            
+            msg = 'HP 8643A device {0:s} has \n{1:s}'
+            raise LabscriptError(dedent(msg.format(self.VISA_name,err_string))) 
         
         # note: HP 8643A has 16 bits in ESR, 
         # so need to ensure future use bits not present when passed
