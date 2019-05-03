@@ -52,11 +52,11 @@ class NovaTech409B_ACWorker(Worker):
         
         # conversion dictionaries for program_static from 
         # program_manual                      
-        self.conv = {'freq':10**(-6),'amp':1023.0,'phase':16384.0/360.0}
+        self.conv = {'freq':self.clk_scale*10**(-6),'amp':1023.0,'phase':16384.0/360.0}## check if things break 2019-02-22
         # and from transition_to_buffered
         self.conv_buffered = {'freq':10**(-7),'amp':1,'phase':1}
-        # read from device conversion, basically conv/conv_buffered
-        self.read_conv = {'freq':1/10.0,'amp':1/1023.0,'phase':360.0/16384.0}
+        # read from device conversion, basically conv_buffered/conv
+        self.read_conv = {'freq':1/(self.clk_scale*10.0),'amp':1/1023.0,'phase':360.0/16384.0} ## check if things break 2019-02-22
         
         # set phase mode method
         phase_mode_commands = {
@@ -111,13 +111,25 @@ class NovaTech409B_ACWorker(Worker):
         self.write_check(b'I a\r\n')
         self.write_check(b'%s\r\n'%self.phase_mode_command)
         
-        self.connection.write(b'%s\r\n'%self.phase_mode_command)
-        if self.connection.readline() != b'OK\r\n':
-            raise Exception('Error: Failed to execute command: "%s"'%self.phase_mode.decode('utf8'))
+        # Set clock parameters
+        if self.R_option:
+            # Using R option. Do not send C or Kp serial commands
+            pass
+        else:
+            # Pass kp value
+            self.write_check(b'Kp %02x\r\n'%self.kp)
+            # Pass clock setting            
+            if self.ext_clk:
+                # Enable external clock
+                clk_command = b'C E\r\n'              
+            else:
+                # Or enable internal clock
+                clk_command = b'C I\r\n'
+            self.write_check(clk_command)   
         
         # populate the 'CURRENT_DATA' dictionary    
         self.check_remote_values()
-        
+     
     def check_connection(self):
         '''Sends non-command and tests for correct response
         returns tuple of connection state and reponse string'''
@@ -178,7 +190,8 @@ class NovaTech409B_ACWorker(Worker):
             results['channel %d' % i] = {}
             freq, phase, amp, ignore, ignore, ignore, ignore = line.split()
             # Convert hex multiple of 0.1 Hz to Hz:
-            results['channel %d' % i]['freq'] = float(int(freq,16))*self.read_conv['freq']
+            # Limit precision after converstion to 0.1 Hz
+            results['channel %d' % i]['freq'] = round(float(int(freq,16))*self.read_conv['freq'],1)
             # Convert hex to int:
             results['channel %d' % i]['amp'] = int(amp,16)*self.read_conv['amp']
             # Convert hex fraction of 16384 to degrees:
@@ -191,7 +204,6 @@ class NovaTech409B_ACWorker(Worker):
         """Called within the BLACS worker during transitions. This calls
         program_static for each setting if it isn't already set."""
         for i in range(self.N_chan):
-            print(self.subchnls)    
             # and for each subchnl in the DDS,
             for subchnl in self.subchnls:
                 # don't program if setting is the same
@@ -252,8 +264,12 @@ class NovaTech409B_ACWorker(Worker):
                             continue
                         else:
                             self.program_static(i,subchnl,value)
-                            self.final_values['channel %d'%i][subchnl] = value/self.conv[subchnl]
-                            self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl] = value*self.read_conv[subchnl]
+                            if subchnl == 'freq':
+                                self.final_values['channel %d'%i][subchnl] = round(value/self.conv[subchnl],1)
+                                self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl] = round(value*self.read_conv[subchnl],1)
+                            else:
+                                self.final_values['channel %d'%i][subchnl] = value/self.conv[subchnl]
+                                self.smart_cache['CURRENT_DATA']['channel %d'%i][subchnl] = value*self.read_conv[subchnl]
                     
         # Now program the buffered outputs:
         if table_data is not None:
@@ -280,8 +296,8 @@ class NovaTech409B_ACWorker(Worker):
             # reflect them after the run:
             self.final_values['channel 0'] = {}
             self.final_values['channel 1'] = {}
-            self.final_values['channel 0']['freq'] = data[-1]['freq0']*self.read_conv['freq']
-            self.final_values['channel 1']['freq'] = data[-1]['freq1']*self.read_conv['freq']
+            self.final_values['channel 0']['freq'] = round(data[-1]['freq0']*self.read_conv['freq'],1)
+            self.final_values['channel 1']['freq'] = round(data[-1]['freq1']*self.read_conv['freq'],1)
             self.final_values['channel 0']['amp'] = data[-1]['amp0']*self.read_conv['amp']
             self.final_values['channel 1']['amp'] = data[-1]['amp1']*self.read_conv['amp']
             self.final_values['channel 0']['phase'] = data[-1]['phase0']*self.read_conv['phase']
@@ -387,6 +403,13 @@ class NovaTech440AWorker(NovaTech409BWorker):
             response = self.connection.readline()
         if response != b'OK\r\n':
             raise Exception('Error: Failed to execute command: "e d". Cannot connect to the device.')
+            
+        # configure external clocking
+        if self.ext_clk:
+            self.write_check(b'Fr %.3f\r\n' % self.clk_freq)
+            self.write_check(b'C E\r\n')
+        else:
+            self.write_check(b'C D\r\n')
             
         # populate the 'CURRENT_DATA' dictionary    
         self.check_remote_values()
