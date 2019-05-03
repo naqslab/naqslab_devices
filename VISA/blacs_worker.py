@@ -10,7 +10,7 @@
 #                                                                   #
 #####################################################################
 from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
+from labscript_utils import PY2,dedent
 if PY2:
     str = unicode
 
@@ -25,7 +25,15 @@ class VISAWorker(Worker):
         '''Initializes basic worker and opens VISA connection to device.'''    
         self.VISA_name = self.address
         self.resourceMan = visa.ResourceManager()
-        self.connection = self.resourceMan.open_resource(self.VISA_name)
+        try:
+            self.connection = self.resourceMan.open_resource(self.VISA_name)
+        except visa.VisaIOError:
+            msg = '''{:s} not found! Is it connected?'''.format(self.VISA_name)
+            if PY2:
+                raise LabscriptError(dedent(msg))
+            else:
+                # in PY3, suppress the full visa error for a simpler one
+                raise LabscriptError(dedent(msg)) from None
         self.connection.timeout = 2000
     
     def check_remote_values(self):

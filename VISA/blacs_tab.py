@@ -71,9 +71,13 @@ class VISATab(DeviceTab):
         
         # Store the VISA name to be used
         self.address = str(self.settings['connection_table'].find_by_name(self.settings["device_name"]).BLACS_connection)
+        #self.device_name = str(self.settings['device_name'])
         
         # Create and set the primary worker
-        self.create_worker("main_worker",self.device_worker_class,{'address':self.address})
+        self.create_worker("main_worker",
+                            self.device_worker_class,
+                            {'address':self.address,
+                            'device_name':self.device_name})
         self.primary_worker = "main_worker"       
 
     
