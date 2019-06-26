@@ -19,7 +19,7 @@ import numpy as np
 from naqslab_devices.VISA.blacs_worker import VISAWorker
 from labscript import LabscriptError
 
-import labscript_utils.h5lock, h5py
+import labscript_utils.h5_lock, h5py
 
 
 class TDS_ScopeWorker(VISAWorker):   
