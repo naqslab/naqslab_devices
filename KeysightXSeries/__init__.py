@@ -15,7 +15,3 @@ from labscript_utils import PY2
 if PY2:
     str = unicode
 
-from labscript_devices import deprecated_import_alias
-
-# For backwards compatibility with old experiment scripts:
-SR865 = deprecated_import_alias("naqslab_devices.SR865.labscript_device.SR865")

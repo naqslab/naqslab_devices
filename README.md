@@ -6,8 +6,7 @@ experiment control system.
 
 Devices include:
 
-* Novatech 409B & 409B-AC DDS
-* Novatech 440A DDS
+* Novatech 409B, 409B-AC, & 440A DDS
 * Stanford Research 865 Lockin Amplifier
 * Tektronix TDS series oscilloscopes
 * Keysight MSO/DSO X series oscilloscopes
@@ -16,6 +15,7 @@ Devices include:
     * Rhode & Schwarz SMHU
     * HP 8642A
     * HP 8643A
+    * HP 8648A/B/C/D
     
 The above code is designed to be modular allowing for easy addition of other 
 models, particularly oscilloscopes and CW Signal Generators.
@@ -28,7 +28,7 @@ Clone this repository into the labscript suite directory. Invoke in labscript
 scripts like other labscript\_devices
 ```python
 from naqslab_devices import ScopeChannel
-from naqslab_devices.KeysightXSeries import KeysightXScope
+from naqslab_devices.KeysightXSeries.labscript_device import KeysightXScope
 ```
 
 As of now BLACS will only look in the labscript\_devices repository for 
