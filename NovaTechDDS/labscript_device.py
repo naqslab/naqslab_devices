@@ -40,7 +40,7 @@ class NovaTech409B_AC(IntermediateDevice):
     def __init__(self, name, parent_device, 
                  com_port = "", baud_rate=19200, 
                  update_mode='synchronous', synchronous_first_line_repeat=False, 
-                 phase_mode='default', **kwargs):
+                 phase_mode='continuous', **kwargs):
         '''Labscript device class for NovaTech 409B-AC variant DDS.
         This device has two dynamic channels (0,1) and two static channels (2,3).'''
 
@@ -49,8 +49,8 @@ class NovaTech409B_AC(IntermediateDevice):
         if not update_mode in ['synchronous', 'asynchronous']:
             raise LabscriptError('update_mode must be \'synchronous\' or \'asynchronous\'')
             
-        if not phase_mode in ['default', 'aligned', 'continuous']:
-            raise LabscriptError('phase_mode must be \'default\', \'aligned\' or \'continuous\'')
+        if not phase_mode in ['aligned', 'continuous']:
+            raise LabscriptError('phase_mode must be \'aligned\' or \'continuous\'')
         
         self.update_mode = update_mode
         self.phase_mode = phase_mode

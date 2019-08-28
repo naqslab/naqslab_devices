@@ -60,7 +60,6 @@ class NovaTech409B_ACWorker(Worker):
         
         # set phase mode method
         phase_mode_commands = {
-            'default': b'm 0',
             'aligned': b'm a',
             'continuous': b'm n'}
         self.phase_mode_command = phase_mode_commands[self.phase_mode]
@@ -108,6 +107,7 @@ class NovaTech409B_ACWorker(Worker):
             raise Exception('Error: Failed to execute command: "e d". Cannot connect to the device.')
         
         # set automatic updates and phase mode
+        self.write_check(b'M 0\r\n')
         self.write_check(b'I a\r\n')
         self.write_check(b'%s\r\n'%self.phase_mode_command)
         
@@ -219,7 +219,18 @@ class NovaTech409B_ACWorker(Worker):
         
         self.write_check(command)
      
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):        
+    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
+        
+        # Pretty please reset your memory pointer to zero:
+
+        # Transition to table mode:
+        self.connection.write(b'M t\r\n')
+        self.connection.readline()
+        # And back to manual mode
+        self.connection.write(b'M 0\r\n')
+        if self.connection.readline() != b"OK\r\n":
+            raise Exception('Error: Failed to execute command: "%s"' % self.phase_mode_command.decode('utf8'))
+                
         # Store the initial values in case we have to abort and restore them:
         self.initial_values = initial_values
         # Store the final values for use during transition_to_static:
@@ -311,7 +322,7 @@ class NovaTech409B_ACWorker(Worker):
         return self.transition_to_manual(True)
     
     def transition_to_manual(self,abort = False):
-        self.write_check(b'%s\r\n'%self.phase_mode_command)
+        self.write_check(b'M 0\r\n')
         self.write_check(b'I a\r\n')
 
         if abort:
