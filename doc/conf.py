@@ -65,7 +65,7 @@ pygments_style = 'sphinx'
 # autosummary
 #autosummary_generate = False
 
-#autoclass_content = "both" # include class docstring and __init__
+autoclass_content = "both" # include class docstring and __init__
 
 autodoc_default_options = {
 		"members":True,
