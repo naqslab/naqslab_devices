@@ -9,6 +9,9 @@
 #                                                                   #
 #                                                                   #
 #####################################################################
+"""
+Boiler plate labscript_device for VISA instruments. 
+"""
 from __future__ import division, unicode_literals, print_function, absolute_import
 from labscript_utils import PY2
 if PY2:
@@ -27,14 +30,23 @@ class VISA(Device):
         "device_properties":["VISA_name"]}
         )
     def __init__(self, name, parent_device, VISA_name, **kwargs):
-        '''VISA_name can be full VISA connection string or NI-MAX alias.
-        Trigger Device should be fast clocked device. '''
+        """Base VISA labscript_device class.
+        
+        Inheritors should call VISA.__init__() in their own __init__() method.
+        Generate_code must be overridden.
+        
+        Args:
+            name (str): name of device in connectiontable
+            parent_device (obj): Handle to any parent device.
+            VISA_name (str): Can be full VISA connection string or NI-MAX alias.
+        """
         self.VISA_name = VISA_name
         self.BLACS_connection = VISA_name
         Device.__init__(self, name, parent_device, VISA_name)
         
     def generate_code(self, hdf5_file):
-        # over-ride this method for child classes
-        # it should not return anything
+        """Method to generate instructions for blacs_worker to program device.
+        
+        Must be over-ridden."""
         raise LabscriptError('generate_code() must be overridden for {0:s}'.format(self.name))
 

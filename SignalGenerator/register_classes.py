@@ -10,6 +10,8 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+"""Configures which BLACS_tab goes to which labscript_device."""
+
 import labscript_devices
 
 labscript_devices.register_classes(
