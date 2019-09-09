@@ -20,6 +20,8 @@
 {%- endfor %}
 {%- endmacro %}
 
+{% set pkglist = pkgname.split('.') %}
+
 {%- if is_namespace %}
 {{- [pkgname, "namespace"] | join(" ") | e | heading }}
 
@@ -35,11 +37,10 @@
 {%- else %}
 {{ autosummary(submodules) }}
 
-Detailed Documentation
-----------------------
+{{ ["Detailed Documentation of", pkgname] | join(" ") | e | heading(2) }}
 {%- for submodule in submodules %}
-{% if show_headings %}
-{{- [submodule, "module"] | join(" ") | e | heading(2) }}
+{% if not show_headings %}
+{{- submodule[pkglist[0]|length+1:] | e | heading(3) }}
 {% endif %}
 {{ automodule(submodule, automodule_options) }}
 {% endfor %}
