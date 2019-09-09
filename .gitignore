@@ -37,6 +37,10 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Sphinx docs
+doc/_build
+doc/_apidoc
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
