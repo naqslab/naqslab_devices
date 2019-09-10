@@ -72,8 +72,6 @@ autodoc_default_options = {
 		"undoc-members":True,
 		"show-inheritance":True}
 
-exclude_patterns = []
-
 needs_sphinx = '2.2'
 
 add_module_names = True
