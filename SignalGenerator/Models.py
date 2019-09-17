@@ -73,7 +73,7 @@ class HP_8648B(SignalGenerator):
     # define the scale factor - converts between BLACS front panel and 
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (9e3, 2000) # set in scaled unit (Hz)
+    freq_limits = (9e3, 2000e6) # set in scaled unit (Hz)
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (-136, 20) # set in scaled unit (dBm)
     # Output limits depend on frequency. Can be as low as 10 dBm
@@ -83,7 +83,7 @@ class HP_8648C(SignalGenerator):
     # define the scale factor - converts between BLACS front panel and 
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (9e3, 3200) # set in scaled unit (Hz)
+    freq_limits = (9e3, 3200e6) # set in scaled unit (Hz)
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (-136, 20) # set in scaled unit (dBm)
     # Output limits depend on frequency. Can be as low as 10 dBm
@@ -93,7 +93,7 @@ class HP_8648D(SignalGenerator):
     # define the scale factor - converts between BLACS front panel and 
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (9e3, 4000) # set in scaled unit (Hz)
+    freq_limits = (9e3, 4000e6) # set in scaled unit (Hz)
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (-136, 20) # set in scaled unit (dBm)
     # Output limits depend on frequency. Can be as low as 10 dBm
