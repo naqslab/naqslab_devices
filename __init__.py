@@ -70,15 +70,22 @@ class StaticFreqAmp(StaticDDS):
     """A Static Frequency that supports frequency and amplitude control."""
     description = 'Frequency Source class for Signal Generators'
     allowed_children = [StaticAnalogQuantity]
-    
-    @set_passed_properties(property_names = {})    
-    def __init__(self, name, parent_device, connection, freq_limits = (), freq_conv_class = None,freq_conv_params = {}, amp_limits = (), amp_conv_class = None, amp_conv_params = {}):
+        
+    def __init__(self, name, parent_device, connection, freq_limits = None, freq_conv_class = None, freq_conv_params = {}, amp_limits = None, amp_conv_class = None, amp_conv_params = {}):
         """Frequency and amplitude limits should be respected to ensure device is not sent out of range."""
         Device.__init__(self,name,parent_device,connection)
         self.frequency = StaticAnalogQuantity(self.name+'_freq',self,'freq',freq_limits,freq_conv_class,freq_conv_params)
-        self.frequency.default_value = freq_limits[0]
         self.amplitude = StaticAnalogQuantity(self.name+'_amp',self,'amp',amp_limits,amp_conv_class,amp_conv_params)
-        self.amplitude.default_value = amp_limits[0]
+        # set default values within limits specified
+        # if not specified, use limits from parent device
+        if freq_limits is not None:
+            self.frequency.default_value = freq_limits[0]
+        else:
+            self.frequency.default_value = parent_device.freq_limits[0]/parent_device.scale_factor
+        if amp_limits is not None:
+            self.amplitude.default_value = amp_limits[0]
+        else:
+            self.amplitude.default_value = parent_device.amp_limits[0]/parent_device.amp_scale_factor
         
     def setphase(self,value,units=None):
         raise LabscriptError('StaticFreqAmp does not support phase control')
