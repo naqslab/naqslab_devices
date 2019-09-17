@@ -72,8 +72,8 @@ class HP_8648Worker(SignalGeneratorWorker):
             else:
                 raise LabscriptError(dedent(msg%self.VISA_name)) from None
         
-        if '8648A' not in ident_string:
-            msg = '%s is not supported by the HP_8648A class.'
+        if '8648' not in ident_string:
+            msg = '%s is not supported by the HP_8648 class.'
             raise LabscriptError(dedent(msg%ident_string))
         
         # enables ESR status reading
