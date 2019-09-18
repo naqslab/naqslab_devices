@@ -103,7 +103,8 @@ class StaticFreqAmp(StaticDDS):
         """This instatiates a static frequency output channel.
         
         Frequency and amplitude limits set here will supercede those dictated 
-        by the device class.
+        by the device class, but only when compiling a shot with runmanager. 
+        Static update limits are enforced by the BLACS Tab for the parent device.
         
         Args:
             name (str): Name to assign output channel
