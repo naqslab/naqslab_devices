@@ -74,6 +74,9 @@ class SignalGenerator(VISA):
         return data, self.amp_scale_factor
     
     def generate_code(self, hdf5_file):
+        if not len(self.child_devices):
+            print(f'No outputs attached to {self.name:s}')
+            return
         for output in self.child_devices:
             try:
                 prefix, channel = output.connection.split()
