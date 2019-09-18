@@ -39,15 +39,6 @@ class RS_SMHU(SignalGenerator):
     # Output high can be adjusted up to 19dBm without spec guarantee
     # above 13 will generate error warnings
     
-class HP_8643A(SignalGenerator):
-    description = 'HP 8643A Signal Generator'
-    # define the scale factor - converts between BLACS front panel and 
-    # Writing: scale*desired_freq // Reading:desired_freq/scale
-    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (260e3, 1030e6) # set in scaled unit (Hz)
-    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
-    amp_limits = (-137, 13) # set in scaled unit (dBm)
-    
 class HP_8642A(SignalGenerator):
     description = 'HP 8642A Signal Generator'
     # define the scale factor - converts between BLACS front panel and 
@@ -58,6 +49,15 @@ class HP_8642A(SignalGenerator):
     amp_limits = (-140, 20) # set in scaled unit (dBm)
     # Output limits depend on frequency. Can be as low as 17 dBm
 
+class HP_8643A(SignalGenerator):
+    description = 'HP 8643A Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (260e3, 1030e6) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-137, 13) # set in scaled unit (dBm)
+    
 class HP_8648A(SignalGenerator):
     description = 'HP 8648A Signal Generator'
     # define the scale factor - converts between BLACS front panel and 
@@ -97,3 +97,30 @@ class HP_8648D(SignalGenerator):
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (-136, 20) # set in scaled unit (dBm)
     # Output limits depend on frequency. Can be as low as 10 dBm
+
+class SRS_SG382(SignalGenerator):
+    description = 'Stanford Research Systems SG382 Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (950e3, 2.025e9) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-110, 16.5) # set in scaled unit (dBm)
+
+class SRS_SG384(SignalGenerator):
+    description = 'Stanford Research Systems SG384 Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (950e3, 8.100e9) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-110, 16.5) # set in scaled unit (dBm)
+
+class SRS_SG386(SignalGenerator):
+    description = 'Stanford Research Systems SG386 Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (950e3, 8.100e9) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-110, 16.5) # set in scaled unit (dBm)
