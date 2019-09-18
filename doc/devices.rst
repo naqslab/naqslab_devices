@@ -18,5 +18,6 @@ There are two parent classes that are not directly used, but rather provide temp
 	KeysightXSeries
 	NovaTechDDS
 	PulseBlasterESRPro300
+	PulseBlaster_No_DDS_200
 	SR865
 	TektronixTDS
