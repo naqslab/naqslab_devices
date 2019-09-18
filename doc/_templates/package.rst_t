@@ -1,8 +1,6 @@
 {%- macro automodule(modname, options) -%}
 .. automodule:: {{ modname }}
-{%- for option in options %}
-   :{{ option }}:
-{%- endfor %}
+
 {%- endmacro %}
 
 {%- macro toctree(docnames) -%}

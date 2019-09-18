@@ -23,4 +23,3 @@ Detailed Documentation
 
 .. automodule:: naqslab_devices
 	:members: StaticFreqAmp, ScopeChannel, CounterScopeChannel
-	:inherited-members:

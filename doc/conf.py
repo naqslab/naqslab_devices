@@ -73,14 +73,21 @@ autoclass_content = "init" # options: "both", "class", "init"
 autodoc_default_options = {
 		"members":True,
 		"undoc-members":True,
-		"show-inheritance":True}
+		"show-inheritance":True,
+		"inherited-members":True,
+		"member-order":'bysource', # 'alphabetical', 'groupwise', or 'bysource'
+		#"private-members":True,
+		#"special-members":True,
+		#"imported-members":True,
+		"exclude-members":''
+}
 
 needs_sphinx = '2.2'
 
 add_module_names = True
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = False
+todo_include_todos = True
 
 # -- Options for HTML output -------------------------------------------------
 
