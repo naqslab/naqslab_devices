@@ -18,12 +18,14 @@ from blacs.tab_base_classes import Worker
 
 from labscript import LabscriptError
 
-import visa      
+import visa
 
-class VISAWorker(Worker):   
+class VISAWorker(Worker):
+        
     def init(self):
         '''Initializes basic worker and opens VISA connection to device.'''    
         self.VISA_name = self.address
+        print(self.address)
         self.resourceMan = visa.ResourceManager()
         try:
             self.connection = self.resourceMan.open_resource(self.VISA_name)

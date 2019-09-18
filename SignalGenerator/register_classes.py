@@ -54,15 +54,15 @@ labscript_devices.register_classes(
 
 labscript_devices.register_classes(
     'SRS_SG382',
-    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG382Tab',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG380Tab',
     runviewer_parser='')
 
 labscript_devices.register_classes(
     'SRS_SG384',
-    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG384Tab',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG380Tab',
     runviewer_parser='')
 
 labscript_devices.register_classes(
     'SRS_SG386',
-    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG386Tab',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG380Tab',
     runviewer_parser='')

@@ -21,10 +21,9 @@ from labscript import LabscriptError
 class SRS_SG380Tab(SignalGeneratorTab):
     # Capabilities
     base_units = {'freq':'MHz', 'amp':'dBm'}
-    base_min = {'freq':0,   'amp':-110} 
-    base_max = {'freq':0,  'amp':16.5} # Lower for high frequency models at high freq.
     base_step = {'freq':1,    'amp':1}
     base_decimals = {'freq':9, 'amp':2}
+
     # Event Status Byte Label Definitions for SRS_SG380 models
     status_byte_labels = {'bit 7':'Power On', 
                           'bit 6':'Reserved',
@@ -37,19 +36,33 @@ class SRS_SG380Tab(SignalGeneratorTab):
     
     def __init__(self,*args,**kwargs):
         self.device_worker_class = SRS_SG380Worker
-        SignalGeneratorTab.__init__(self,*args,**kwargs) 
+        SignalGeneratorTab.__init__(self,*args,**kwargs)
         
-class SRS_SG382Tab(SRS_SG380Tab):
-    # Capabilities    
-     base_max = {'freq':2.025e3,  'amp':16.5} # 2.025 GHz
-    
-class SRS_SG384Tab(SRS_SG380Tab):
-    # Capabilities
-    base_max = {'freq':8.100e3,  'amp':16.5} # 8.100 GHz, Must use back panel
-    
-class SRS_SG386Tab(SRS_SG380Tab):
-    # Capabilities
-    base_max = {'freq':8.100e3,  'amp':16.5} # 8.100 GHz, Must use back panel
+    def initialise_GUI(self):
+        
+        # get connection_table properties for configuration
+        connection_object = self.settings['connection_table'].find_by_name(self.device_name)
+        conn_props = connection_object.properties
+        self.freq_limits = conn_props.get('freq_limits',None)
+        self.scale_factor = conn_props.get('scale_factor',1)
+        self.amp_limits = conn_props.get('amp_limits',None)
+        self.amp_scale_factor = conn_props.get('amp_scale_factor',1)
+        self.output = conn_props.get('output','RF')
+        
+        # use labscript_device defined freq limits to set BLACS Tab limits
+        # need to convert from scaled unit to do so
+        self.base_min = {'freq':self.freq_limits[0]/self.scale_factor, 
+                         'amp':self.amp_limits[0]/self.amp_scale_factor}
+                            
+        self.base_max = {'freq':self.freq_limits[1]/self.scale_factor,
+                               'amp':self.amp_limits[1]/self.amp_scale_factor}
+        
+        # send properties to worker
+        self.worker_init_kwargs['output'] = self.output
+        
+        # call parent to finish initialisation of GUI
+        SignalGeneratorTab.initialise_GUI(self)
+        
 
 class SRS_SG380Worker(SignalGeneratorWorker):
     # define the scale factor
@@ -77,18 +90,22 @@ class SRS_SG380Worker(SignalGeneratorWorker):
         self.connection.write('*ESE 60;*SRE 32;*CLS')
         self.esr_mask = 60
     
-    # define instrument specific read and write strings for Freq & Amp control
-    # may need to extend to other two outputs
-    freq_write_string = 'FREQ {:.6f} HZ' # in Hz	
-    freq_query_string = 'FREQ?' #SRS_SG380 returns float, in Hz
+        # define instrument specific read and write strings for Freq & Amp control
+        # may need to extend to other two outputs
+        self.freq_write_string = 'FREQ {:.6f} HZ' # in Hz
+        self.freq_query_string = 'FREQ?' #SRS_SG380 returns float, in Hz
+        
+        # define amplitude string based on which output is selected
+        amp_outputs = {'DC':'L','RF':'R','Doubled_RF':'H'}
+        self.amp_write_string = 'AMP'+amp_outputs[self.output]+'{:.2f}' # in dBm
+        self.amp_query_string = 'AMP'+amp_outputs[self.output]+'? ' # in dBm
+    
     def freq_parser(self,freq_string):
         '''Frequency Query string parser for SRS_SG380
         freq_string format is float, in Hz
         Returns float in instrument units, Hz (i.e. needs scaling to base_units)'''
         return float(freq_string)
-
-    amp_write_string = 'AMPH {:.2f}' # in dBm
-    amp_query_string = 'AMPH? ' # in dBm
+    
     def amp_parser(self,amp_string):
         '''Amplitude Query string parser for SRS_SG380
         amp_string format is float in configured units (dBm by default)
