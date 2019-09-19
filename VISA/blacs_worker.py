@@ -25,7 +25,6 @@ class VISAWorker(Worker):
     def init(self):
         '''Initializes basic worker and opens VISA connection to device.'''    
         self.VISA_name = self.address
-        print(self.address)
         self.resourceMan = visa.ResourceManager()
         try:
             self.connection = self.resourceMan.open_resource(self.VISA_name)

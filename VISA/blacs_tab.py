@@ -40,8 +40,6 @@ class VISATab(DeviceTab):
     
     STBui_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),status_widget)
     
-    worker_init_kwargs = {}
-    
     def __init__(self,*args,**kwargs):
         '''You MUST override this class in order to define the device worker for any child devices.
         You then call this parent method to finish initialization.'''
@@ -74,10 +72,13 @@ class VISATab(DeviceTab):
         self.address = str(self.settings['connection_table'].find_by_name(self.settings["device_name"]).BLACS_connection)
         
         # add entries to worker kwargs
-        print('In BLACS Tab',self.address)
+        # this allows inheritors to initialize with added entries for their own workers
+        if not hasattr(self,'worker_init_kwargs'):
+            self.worker_init_kwargs = {}
+            
         self.worker_init_kwargs['address'] = self.address
         self.worker_init_kwargs['device_name'] = self.device_name
-        
+
         # Create and set the primary worker
         self.create_worker("main_worker",
                             self.device_worker_class,

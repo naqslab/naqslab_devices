@@ -58,7 +58,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
                                'amp':self.amp_limits[1]/self.amp_scale_factor}
         
         # send properties to worker
-        self.worker_init_kwargs['output'] = self.output
+        self.worker_init_kwargs = {'output':self.output}
         
         # call parent to finish initialisation of GUI
         SignalGeneratorTab.initialise_GUI(self)
