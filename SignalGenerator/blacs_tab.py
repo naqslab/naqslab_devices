@@ -41,7 +41,7 @@ class SignalGeneratorTab(VISATab):
     def __init__(self,*args,**kwargs):
         if not hasattr(self,'device_worker_class'):
             #raise LabscriptError('%s __init__ method not overridden!'%self)
-            self.device_worker_class = 'naqslab_devices.SignalGenerator.blacs_worker.SignalGeneratorWorker'
+            self.device_worker_class = 'naqslab_devices.SignalGenerator.blacs_worker.MockSignalGeneratorWorker'
         VISATab.__init__(self,*args,**kwargs)
     
     def initialise_GUI(self):

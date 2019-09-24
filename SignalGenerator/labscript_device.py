@@ -35,9 +35,9 @@ class SignalGenerator(VISA):
     # define the scale factor - converts between BLACS front panel and instr
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = () # set in scaled unit 
+    freq_limits = (0,1) # set in scaled unit 
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
-    amp_limits = () # set in scaled unit
+    amp_limits = (0,1) # set in scaled unit
 
     @set_passed_properties()
     def __init__(self, name, VISA_name):
