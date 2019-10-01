@@ -232,16 +232,6 @@ class NovaTech409B_ACWorker(Worker):
         self.write_check(command)
      
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        
-        # Pretty please reset your memory pointer to zero:
-
-        # Transition to table mode:
-        self.connection.write(b'M t\r\n')
-        self.connection.readline()
-        # And back to manual mode
-        self.connection.write(b'M 0\r\n')
-        if self.connection.readline() != b"OK\r\n":
-            raise Exception('Error: Failed to execute command: "%s"' % self.phase_mode_command.decode('utf8'))
                 
         # Store the initial values in case we have to abort and restore them:
         self.initial_values = initial_values
@@ -257,6 +247,14 @@ class NovaTech409B_ACWorker(Worker):
             # Now program the buffered outputs:
             if 'TABLE_DATA' in group:
                 table_data = group['TABLE_DATA'][:]
+                # using table mode, need to reset memory pointer to zero
+                # Transition to table mode:
+                self.connection.write(b'M t\r\n')
+                self.connection.readline()
+                # And back to manual mode
+                self.connection.write(b'M 0\r\n')
+                if self.connection.readline() != b"OK\r\n":
+                    raise Exception('Error: Failed to execute command: "%s"' % self.phase_mode_command.decode('utf8'))
                 
         if static_data is not None:
             data = static_data
