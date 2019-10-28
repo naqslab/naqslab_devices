@@ -20,16 +20,16 @@ from qtutils.qt.QtWidgets import *
 
 from labscript_utils.qtwidgets.analogoutput import AnalogOutput
 from labscript_utils.qtwidgets.digitaloutput import DigitalOutput
-from labscript_utils.qtwidgets.enumcontrol import EnumControl
+from labscript_utils.qtwidgets.enumoutput import EnumOutput
+
 
 class ModulationControl(QWidget):
-    def __init__(self, hardware_name, connection_name='-', parent=None):
+    def __init__(self, hardware_name, parent=None):
         QWidget.__init__(self,parent)
         
-        self._connection_name = connection_name
         self._hardware_name = hardware_name
         
-        label_text = (self._hardware_name + '\n' + self._connection_name) 
+        label_text = (self._hardware_name) 
         self._label = QLabel(label_text)
         self._label.setAlignment(Qt.AlignCenter)
         self._label.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Minimum)
@@ -39,12 +39,11 @@ class ModulationControl(QWidget):
         
         # Create widgets
         self._widgets = {}
-        self._widgets['enable'] = DigitalOutput('Enable')
-        self._widgets['type'] = EnumControl('',display_name='Type',horizontal_alignment=True)
-        self._widgets['function'] = EnumControl('',display_name='Function',horizontal_alignment=True)
-        self._widgets['rate'] = AnalogOutput('',display_name='Rate', horizontal_alignment=True)
-        self._widgets['depth'] = AnalogOutput('',display_name='Depth', horizontal_alignment=True)
-        self._widgets['ext'] = EnumControl('',display_name='External Coupling', horizontal_alignment=True)
+        self._widgets['MODL'] = DigitalOutput('Enable')
+        self._widgets['FNC'] = EnumOutput('',display_name='Function',horizontal_alignment=True)
+        self._widgets['RATE'] = AnalogOutput('',display_name='Rate', horizontal_alignment=True)
+        self._widgets['DEV'] = AnalogOutput('',display_name='Depth', horizontal_alignment=True)
+        self._widgets['COUP'] = EnumOutput('',display_name='External Coupling', horizontal_alignment=True)
         
         # Extra layout at the top level with horizontal stretches so that our
         # widgets do not grow to take up all available horizontal space:
@@ -74,22 +73,20 @@ class ModulationControl(QWidget):
         gate_layout.setContentsMargins(0,0,0,0)
         gate_layout.setSpacing(0)
         gate_layout.addStretch()
-        gate_layout.addWidget(self._widgets['enable'])
+        gate_layout.addWidget(self._widgets['MODL'])
         gate_layout.addStretch()
 
-        self._widgets['enable'].setToolTip("Enable")
-        self._widgets['type'].setToolTip("Modulation Type")
-        self._widgets['function'].setToolTip("Modulation Function")
-        self._widgets['rate'].setToolTip("Modulation Rate")
-        self._widgets['depth'].setToolTip("Modulation Depth")
-        self._widgets['ext'].setToolTip("External Input Coupling")
+        self._widgets['MODL'].setToolTip("Enable")
+        self._widgets['FNC'].setToolTip("Modulation Function")
+        self._widgets['RATE'].setToolTip("Modulation Rate")
+        self._widgets['DEV'].setToolTip("Modulation Depth")
+        self._widgets['COUP'].setToolTip("External Input Coupling")
 
         v_layout.addWidget(self.enable_container)
-        v_layout.addWidget(self._widgets['type'])
-        v_layout.addWidget(self._widgets['function'])
-        v_layout.addWidget(self._widgets['rate'])
-        v_layout.addWidget(self._widgets['depth'])
-        v_layout.addWidget(self._widgets['ext'])
+        v_layout.addWidget(self._widgets['FNC'])
+        v_layout.addWidget(self._widgets['RATE'])
+        v_layout.addWidget(self._widgets['DEV'])
+        v_layout.addWidget(self._widgets['COUP'])
         
         self._layout.addWidget(self._label,0,0)
         #self._layout.addItem(QSpacerItem(0,0,QSizePolicy.MinimumExpanding,QSizePolicy.Minimum),0,1)
@@ -102,7 +99,7 @@ class ModulationControl(QWidget):
         if subchnl in self._widgets:
             return self._widgets[subchnl]
         
-        raise RuntimeError('The sub-channel %s must be either gate, freq, amp or phase'%subchnl)
+        raise RuntimeError('The sub-channel %s must be one of [MODL,FNC,RATE,DEV,COUP]'%subchnl)
         
     def hide_sub_widget(self,subchnl):
         if subchnl in self._widgets:
@@ -112,7 +109,7 @@ class ModulationControl(QWidget):
                 self._widgets[subchnl].hide()
             return
         
-        raise RuntimeError('The sub-channel %s must be either gate, freq, amp or phase'%subchnl)  
+        raise RuntimeError('The sub-channel %s must be one of [MODL,FNC,RATE,DEV,COUP]'%subchnl)  
     
     def show_sub_widget(self,subchnl):
         if subchnl in self._widgets:
@@ -122,7 +119,7 @@ class ModulationControl(QWidget):
                 self._widgets[subchnl].show()
             return
         
-        raise RuntimeError('The sub-channel %s must be either gate, freq, amp or phase'%subchnl)
+        raise RuntimeError('The sub-channel %s must be one of [MODL,FNC,RATE,DEV,COUP]'%subchnl)
         
 # A simple test!
 if __name__ == '__main__':
@@ -139,4 +136,4 @@ if __name__ == '__main__':
     
     
     sys.exit(qapplication.exec_())
-    
+    

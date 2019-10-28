@@ -37,6 +37,10 @@ class SignalGeneratorTab(VISATab):
                           'bit 2':'bit 2 label',
                           'bit 1':'bit 1 label',
                           'bit 0':'bit 0 label'}
+                          
+    device_properties = {}
+    
+    prop_widgets = {}
     
     def __init__(self,*args,**kwargs):
         if not hasattr(self,'device_worker_class'):
@@ -63,6 +67,11 @@ class SignalGeneratorTab(VISATab):
         dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
         # and auto place the widgets in the UI
         self.auto_place_widgets(("Frequency Output",dds_widgets))
+        # create device property widgets
+        if self.device_properties:
+            self.create_device_properties(self.device_properties)
+            self.prop_widgets.update(self.create_property_widgets(self.device_properties))
+            self.auto_place_widgets(('Device Properties',self.prop_widgets))
         
         # call VISATab.initialise to create STB widget
         VISATab.initialise_GUI(self)

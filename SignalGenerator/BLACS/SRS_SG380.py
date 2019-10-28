@@ -17,6 +17,7 @@ if PY2:
 from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
 from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
 from labscript import LabscriptError
+from naqslab_devices.SignalGenerator.modulationcontrol import ModulationControl
 
 class SRS_SG380Tab(SignalGeneratorTab):
     # Capabilities
@@ -33,6 +34,29 @@ class SRS_SG380Tab(SignalGeneratorTab):
                           'bit 2':'Query Error',
                           'bit 1':'Reserved',
                           'bit 0':'Operation Complete'}
+                          
+    # set device properties to use
+    device_properties = {'ENB':{'default':True,'type':'bool'}}
+    
+    # Define modulation settings
+    # Note that these settings are the maximum values
+    # Actual max/min values depend on present settings of box                      
+    mod_defs = {'AM':{'DEV':{'min':0,'max':100,'step':1,'decimals':1,
+                              'base_unit':'%','default':0},
+                      'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6, # all internal mod rates depend on center frequency band
+                              'base_unit':'Hz','default':1e3}},
+                'FM':{'DEV':{'min':0.1,'max':64e6,'step':1,'decimals':1, #max dev depends on center frequency band
+                              'base_unit':'Hz','default_value':1e3},
+                      'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6,
+                              'base_unit':'Hz','default':1e3}},
+                'PM':{'DEV':{'min':0,'max':360,'step':1,'decimals':2,
+                              'base_unit':'deg','default':0},
+                      'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6,
+                              'base_unit':'Hz','default_value':1e3}},
+                'Sweep':{'DEV':{'min':0.1,'max':4.4e9,'step':1,'decimals':1, #range depends heavily on center frequency band
+                              'base_unit':'%','default_value':0},
+                      'RATE':{'min':1e-6,'max':120,'step':1,'decimals':6,
+                              'base_unit':'Hz','default':10}}}
     
     def __init__(self,*args,**kwargs):
         self.device_worker_class = SRS_SG380Worker
@@ -48,6 +72,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
         self.amp_limits = conn_props.get('amp_limits',None)
         self.amp_scale_factor = conn_props.get('amp_scale_factor',1)
         self.output = conn_props.get('output','RF')
+        self.mod_type = conn_props.get('mod_type','AM')
         
         # use labscript_device defined freq limits to set BLACS Tab limits
         # need to convert from scaled unit to do so
@@ -58,10 +83,35 @@ class SRS_SG380Tab(SignalGeneratorTab):
                                'amp':self.amp_limits[1]/self.amp_scale_factor}
         
         # send properties to worker
-        self.worker_init_kwargs = {'output':self.output}
+        self.worker_init_kwargs = {'output':self.output,'mod_type':self.mod_type}
+        
+        self.prop_widgets['Mod'] = self.initialise_ModControl()
         
         # call parent to finish initialisation of GUI
         SignalGeneratorTab.initialise_GUI(self)
+                
+        
+    def initialise_ModControl(self):
+        mod_controls = {'MODL':{'default':False,'type':'bool'},
+                        'COUP':{'default':'AC','type':'enum','return_type':'index','options':['AC','DC']},
+                        'FNC':{'default':'Sine','type':'enum','return_type':'index','options':
+                                {'Sine':0,'Ramp':1,'Triangle':2,'Square':3,'External':5}},
+                        'RATE':{'type':'num'},
+                        'DEV':{'type':'num'}}
+                        
+        mod_controls['RATE'].update(self.mod_defs[self.mod_type]['RATE'])
+        mod_controls['DEV'].update(self.mod_defs[self.mod_type]['DEV'])
+        
+        self.create_device_properties(mod_controls)
+        modWidget = ModulationControl(f'{self.mod_type} Control')
+        
+        for key in mod_controls:
+            prop = self.get_property(key)
+            widget = modWidget.get_sub_widget(key)
+            prop.add_widget(widget)
+            
+        return modWidget
+        
         
 
 class SRS_SG380Worker(SignalGeneratorWorker):
@@ -96,9 +146,20 @@ class SRS_SG380Worker(SignalGeneratorWorker):
         self.freq_query_string = 'FREQ?' #SRS_SG380 returns float, in Hz
         
         # define amplitude string based on which output is selected
-        amp_outputs = {'DC':'L','RF':'R','Doubled_RF':'H'}
-        self.amp_write_string = 'AMP'+amp_outputs[self.output]+'{:.2f}' # in dBm
-        self.amp_query_string = 'AMP'+amp_outputs[self.output]+'? ' # in dBm
+        self.amp_outputs = {'DC':'L','RF':'R','Doubled_RF':'H'}
+        self.amp_write_string = 'AMP'+self.amp_outputs[self.output]+'{:.2f}' # in dBm
+        self.amp_query_string = 'AMP'+self.amp_outputs[self.output]+'? ' # in dBm
+        # define correct output enable command strings
+        self.enable_write_string = 'ENB'+self.amp_outputs[self.output]+'{:1d}'
+        self.enable_query_string = 'ENB'+self.amp_outputs[self.output]+'?'
+        
+        # define modulation control read/write strings
+        self.mod_strings = {'AM':{'FNC':'MFNC','DEV':'ADEP','RATE':'RATE'},
+                            'FM':{'FNC':'MFNC','DEV':'FDEV','RATE':'RATE'},
+                            'PM':{'FNC':'MFNC','DEV':'PDEV','RATE':'RATE'},
+                            'Sweep':{'FNC':'SFNC','DEV':'SDEV','RATE':'SRAT'}}
+        
+        
     
     def freq_parser(self,freq_string):
         '''Frequency Query string parser for SRS_SG380
@@ -111,6 +172,28 @@ class SRS_SG380Worker(SignalGeneratorWorker):
         amp_string format is float in configured units (dBm by default)
         Returns float in instrument units, dBm'''
         return float(amp_string)
+        
+    def program_properties(self,values):
+        vals = values.copy()
+        mod_strings = self.mod_strings[self.mod_type]
+        
+        if 'ENB' in vals:
+            # output enable
+            self.connection.write(f"ENB{self.amp_outputs[self.output]}{vals.pop('ENB'):d}")
+        if 'MODL' in vals:
+            # mod enable
+            self.connection.write(f"MODL{vals.pop('MODL'):d}")
+        if 'COUP' in vals:
+            # set external input coupling
+            self.connection.write(f"COUP{vals.pop('COUP'):d}")
+        if 'FNC' in vals:
+            self.connection.write(f"{mod_strings['FNC']}{vals.pop('FNC'):d}")
+        if 'DEV' in vals:
+            self.connection.write(f"{mod_strings['DEV']}{vals.pop('DEV'):e}")
+        if 'RATE' in vals:
+            self.connection.write(f"{mod_strings['RATE']}{vals.pop('RATE'):e}")
+        
+        return values
         
     def check_status(self):
         # no real info in stb, use esr instead

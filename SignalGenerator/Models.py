@@ -112,9 +112,9 @@ class SRS_SG380(SignalGenerator):
     
     @set_passed_properties(property_names = {
         'connection_table_properties': ['output','freq_limits','amp_limits',
-                                    'scale_factor','amp_scale_factor']
+                                    'scale_factor','amp_scale_factor','mod_type']
         })
-    def __init__(self, name, VISA_name, output='RF'):
+    def __init__(self, name, VISA_name, output='RF', mod_type='AM'):
         """Saves the user specified output to use and saves for reading by
         BLACS_Tab.
         
@@ -125,6 +125,8 @@ class SRS_SG380(SignalGenerator):
             VISA_name (str): the VISA connection string to the physical device
             output (str): Selects which output of the SG380 to use. Options are
                     'DC', 'RF', and 'Doubled_RF'. Defaults to 'RF'.
+            mod_type (str): Selects which modulation type to use. Options are
+                    'AM', 'FM', 'PM', 'Sweep'. Defaults to 'AM'.
         """
         # set in scaled unit (Hz)
         freq_capabilities = {'DC': (0,62.5e6),
@@ -145,6 +147,9 @@ class SRS_SG380(SignalGenerator):
             Please select from {self.outputs}
             '''
             raise LabscriptError(msg)
+            
+        # set modulation stuff here
+        self.mod_type = mod_type
         
         # finish initialization with parent __init__
         SignalGenerator.__init__(self,name,VISA_name)
