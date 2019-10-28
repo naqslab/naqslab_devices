@@ -12,6 +12,12 @@
 #####################################################################
 import labscript_devices
 
+# Mock Signal Generator Class for testing
+labscript_devices.register_classes(
+    'SignalGenerator',
+    BLACS_tab='naqslab_devices.SignalGenerator.blacs_tab.SignalGeneratorTab',
+    runviewer_parser='')
+
 labscript_devices.register_classes(
     'RS_SMF100A',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.RS_SMF100A.RS_SMF100ATab',

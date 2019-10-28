@@ -123,3 +123,35 @@ class SignalGeneratorWorker(VISAWorker):
                 
         return final_values
 
+class MockSignalGeneratorWorker(SignalGeneratorWorker):
+    """Mock Signal Generator Class
+    
+    Mock class for testing Signal Generator Tab functionality.
+    It does not communicate with any hardware.
+    """
+    
+    def init(self):
+        # initialize the smart cache
+        self.smart_cache = {'STATIC_DATA': {'freq':0,'amp':1}}
+    
+    def check_remote_values(self):
+        return {'channel 0':self.smart_cache['STATIC_DATA']}
+        
+    def check_status(self):
+        stb = 128
+        
+        return self.convert_register(stb)
+        
+    def program_manual(self,front_panel_values):
+        self.smart_cache['STATIC_DATA'] = front_panel_values['channel 0']
+        return self.check_remote_values()
+        
+    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
+        VISAWorker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
+        
+        
+    def clear(self,value):
+        pass
+        
+    def shutdown(self):
+        pass
