@@ -79,4 +79,4 @@ class SignalGeneratorTab(VISATab):
         # Set the capabilities of this device
         self.supports_remote_value_check(True)
         self.supports_smart_programming(True) 
-        self.statemachine_timeout_add(5000, self.status_monitor)       
+        self.statemachine_timeout_add(10000, self.status_monitor)       
