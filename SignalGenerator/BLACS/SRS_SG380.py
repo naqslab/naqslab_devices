@@ -54,7 +54,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
                       'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6,
                               'base_unit':'Hz','default_value':1e3}},
                 'Sweep':{'DEV':{'min':0.1,'max':4.4e9,'step':1,'decimals':1, #range depends heavily on center frequency band
-                              'base_unit':'%','default':0},
+                              'base_unit':'Hz','default':0},
                       'RATE':{'min':1e-6,'max':120,'step':1,'decimals':6,
                               'base_unit':'Hz','default':10}}}
     
