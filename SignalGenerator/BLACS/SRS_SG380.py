@@ -54,7 +54,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
                       'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6,
                               'base_unit':'Hz','default_value':1e3}},
                 'Sweep':{'DEV':{'min':0.1,'max':4.4e9,'step':1,'decimals':1, #range depends heavily on center frequency band
-                              'base_unit':'%','default_value':0},
+                              'base_unit':'%','default':0},
                       'RATE':{'min':1e-6,'max':120,'step':1,'decimals':6,
                               'base_unit':'Hz','default':10}}}
     
@@ -174,6 +174,8 @@ class SRS_SG380Worker(SignalGeneratorWorker):
         return float(amp_string)
         
     def program_properties(self,values):
+        # TODO: This needs to be cleaned up a lot
+        # Likely when the meta_class gets implemented
         vals = values.copy()
         mod_strings = self.mod_strings[self.mod_type]
         
