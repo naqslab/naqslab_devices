@@ -36,7 +36,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
                           'bit 0':'Operation Complete'}
                           
     # set device properties to use
-    device_properties = {'ENB':{'default':True,'type':'bool'}}
+    device_properties = {'ENB':{'default':True,'type':'bool','display_name':'Output Enable'}}
     
     # Define modulation settings
     # Note that these settings are the maximum values
