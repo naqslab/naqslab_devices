@@ -156,6 +156,7 @@ latex_elements = {
 
 # -- Intersphinx Options --------------------------------------------------
 
-# Example configuration for intersphinx: refer to the Python standard library.
-#intersphinx_mapping = {'https://docs.python.org/': None,'https://bitbucket.org/labscript_suite':None}
-intersphinx_mapping = {'pyvisa':('https://pyvisa.readthedocs.io/en/latest/',None)}
+# configure intersphinx to attempt auto-lookup of objects inventory.
+# If it fails, use local cached copy.
+intersphinx_mapping = {'pyvisa':('https://pyvisa.readthedocs.io/en/latest/',(None,'_inv/pyvisa-objects.inv')),
+					   'sphinx':('http://www.sphinx-doc.org/en/master/',(None,'_inv/sphinx-objects.inv'))}
