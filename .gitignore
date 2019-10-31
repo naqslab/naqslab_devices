@@ -37,6 +37,14 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Sphinx docs
+doc/_apidoc
+# track the output pdf
+doc/_build/*
+!doc/_build/latex
+doc/_build/latex/*
+!doc/_build/latex/naqslab_devices.pdf
+
 # Unit test / coverage reports
 htmlcov/
 .tox/

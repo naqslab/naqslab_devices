@@ -9,6 +9,11 @@
 #                                                                   #
 #                                                                   #
 #####################################################################
+"""
+Boiler plate blacs_tab for VISA instruments. 
+
+Defines the common STBstatus.ui widget all devices use to report their current status.
+"""
 from __future__ import division, unicode_literals, print_function, absolute_import
 from labscript_utils import PY2
 if PY2:
@@ -41,14 +46,15 @@ class VISATab(DeviceTab):
     STBui_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),status_widget)
     
     def __init__(self,*args,**kwargs):
-        '''You MUST override this class in order to define the device worker for any child devices.
-        You then call this parent method to finish initialization.'''
+        """You MUST override this method in order to define the device worker.
+        You then call this parent method to finish initialization.
+        """
         if not hasattr(self,'device_worker_class'):
             raise LabscriptError('BLACS worker not set for device: {0:s}'.format(self))
         DeviceTab.__init__(self,*args,**kwargs)
     
     def initialise_GUI(self):
-        '''Loads the standard STBstatus.ui widget and sets the worker defined in __init__'''
+        """Loads the standard STBstatus.ui widget and sets the worker defined in __init__"""
         # load the status_ui for the STB register
         self.status_ui = UiLoader().load(self.STBui_path)
         self.get_tab_layout().addWidget(self.status_ui)
