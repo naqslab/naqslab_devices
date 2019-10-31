@@ -14,6 +14,7 @@ This library is a collection of third-party devices for the labscript_suite expe
 
    usage
    devices
+   doc_build
 
 
 Indices and tables
