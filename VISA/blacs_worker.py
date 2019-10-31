@@ -9,6 +9,11 @@
 #                                                                   #
 #                                                                   #
 #####################################################################
+"""
+Boiler plate BLACS_worker for VISA instruments.
+
+Inheritors use the same communication protocol, but override the command syntax.
+"""
 from __future__ import division, unicode_literals, print_function, absolute_import
 from labscript_utils import PY2,dedent
 if PY2:
@@ -23,7 +28,9 @@ import visa
 class VISAWorker(Worker):
         
     def init(self):
-        '''Initializes basic worker and opens VISA connection to device.'''    
+        """Initializes basic worker and opens VISA connection to device.
+        
+        Default connection timeout is 2 seconds"""    
         self.VISA_name = self.address
         self.resourceMan = visa.ResourceManager()
         try:
@@ -42,7 +49,15 @@ class VISAWorker(Worker):
         return None
     
     def convert_register(self,register):
-        '''Converts register value to dict of bools'''
+        """Converts returned register value to dict of bools
+        
+        Args:
+            register (int): Status register value returned from 
+                            :obj:`read_stb <pyvisa.highlevel.VisaLibraryBase.read_stb>`
+            
+        Returns:
+            dict: Status byte dictionary as formatted in :obj:`VISATab`
+        """
         results = {}
         #get the status and convert to binary, and take off the '0b' header:
         status = bin(register)[2:]
@@ -58,24 +73,44 @@ class VISAWorker(Worker):
         return results
     
     def check_status(self):
-        '''Reads the Status Byte Register of the VISA device.
-        Returns dictionary of bit values.'''
+        """Reads the Status Byte Register of the VISA device.
+        
+        Returns:
+            dict: Status byte dictionary as formatted in :obj:`VISATab`
+        """
         results = {}
         stb = self.connection.read_stb()
         
         return self.convert_register(stb)
     
     def program_manual(self,front_panel_values):
-        # over-ride this method if remote programming supported
-        # should return self.check_remote_values() to confirm program success
+        """Over-ride this method if remote programming is supported.
+        
+        Returns:
+            :obj:`VISAWorker.check_remote_values()`
+        """
+
         return self.check_remote_values()
         
     def clear(self,value):
-        '''Sends standard *CLR to clear registers of device.'''
+        """Sends standard \*CLR to clear registers of device.
+        
+        Args:
+            value (bool): value of Clear button in STBstatus.ui widget
+        """
         self.connection.clear()
         
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        '''Stores various device handles for use in transition_to_manual method.'''
+        """Stores various device handles for use in transition_to_manual method.
+        
+        Automatically called by BLACS. Should be over-ridden by inheritors.
+        
+        Args:
+            device_name (str): Name of device from connectiontable
+            h5file (str): path to shot h5_file
+            initial_values (dict): Contains the start of shot values
+            fresh (bool): Indicates if smart_programming should be refreshed this shot
+        """
         # Store the initial values in case we have to abort and restore them:
         self.initial_values = initial_values
         # Store the final values to for use during transition_to_static:
@@ -87,13 +122,17 @@ class VISAWorker(Worker):
         return self.final_values
         
     def abort_transition_to_buffered(self):
+        """Special abort shot configuration code belongs here.
+        """
         return self.transition_to_manual(True)
         
     def abort_buffered(self):
+        """Special abort shot code belongs here.
+        """
         return self.transition_to_manual(True)
             
     def transition_to_manual(self,abort = False):
-        '''Simple transition_to_manual method where no data is saved.'''         
+        """Simple transition_to_manual method where no data is saved."""         
         if abort:
             # If we're aborting the run, reset to original value
             self.program_manual(self.initial_values)
@@ -102,6 +141,6 @@ class VISAWorker(Worker):
         return True
         
     def shutdown(self):
-        '''Closes VISA connection to device.'''
+        """Closes VISA connection to device."""
         self.connection.close()
 

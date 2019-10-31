@@ -10,6 +10,8 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+"""Configures which BLACS_tab goes to which labscript_device."""
+
 import labscript_devices
 
 # Mock Signal Generator Class for testing
