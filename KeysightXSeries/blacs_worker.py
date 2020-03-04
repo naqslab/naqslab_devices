@@ -120,28 +120,28 @@ class KeysightXScopeWorker(VISAWorker):
                 # get acquisitions table values so we can close the file
                 try:
                     location = '/devices/'+self.device_name+'/ANALOG_ACQUISITIONS'
-                    analog_acquisitions = hdf5_file[location].value
+                    analog_acquisitions = hdf5_file[location][()]
                     trigger_time = hdf5_file[location].attrs['trigger_time']
                 except:
                     # No analog acquisitions!
                     analog_acquisitions = np.empty(0)
                 try:
                     location = '/devices/'+self.device_name+'/POD1_ACQUISITIONS'
-                    pod1_acquisitions = hdf5_file[location].value
+                    pod1_acquisitions = hdf5_file[location][()]
                     trigger_time = hdf5_file[location].attrs['trigger_time']
                 except:
                     # No acquisitions in first digital Pod
                     pod1_acquisitions = np.empty(0)
                 try:
                     location = '/devices/'+self.device_name+'/POD2_ACQUISITIONS'
-                    pod2_acquisitions = hdf5_file[location].value
+                    pod2_acquisitions = hdf5_file[location][()]
                     trigger_time = hdf5_file[location].attrs['trigger_time']
                 except:
                     # No acquisitions in second digital Pod
                     pod2_acquisitions = np.empty(0)
                 try:
                     location = '/devices/'+self.device_name+'/COUNTERS'
-                    counters = hdf5_file[location].value
+                    counters = hdf5_file[location][()]
                     trigger_time = hdf5_file[location].attrs['trigger_time']
                 except:
                     # no counters
@@ -153,9 +153,9 @@ class KeysightXScopeWorker(VISAWorker):
             
             data = {}
             # read analog channels if they exist
-            if len(analog_acquisitions):           
+            if len(analog_acquisitions):          
                 for connection,label in analog_acquisitions:
-                    channel_num = int(connection.split(' ')[-1])
+                    channel_num = int(connection.decode('UTF-8').split(' ')[-1])
                     # read an analog channel
                     # use larger chunk size for faster large data reads
                     [form,typ,Apts,cnt,Axinc,Axor,Axref,yinc,yor,yref] = self.connection.query_ascii_values(self.read_analog_parameters_string.format(channel_num))
@@ -210,7 +210,7 @@ class KeysightXScopeWorker(VISAWorker):
             count_data = {}
             if len(counters):
                 for connection,typ,pol in counters:
-                    chan_num = int(connection.split(' ')[-1])
+                    chan_num = int(connection.decode('UTF-8').split(' ')[-1])
                     count_data[connection] = float(self.connection.query(self.read_counter_string.format(pol,typ,chan_num)))                     
             
             # define the dtypes for the h5 arrays

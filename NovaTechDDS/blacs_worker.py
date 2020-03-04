@@ -262,7 +262,7 @@ class NovaTech409B_ACWorker(Worker):
                 self.smart_cache['STATIC_DATA'] = data
                                 
                 # need to infer which channels to program
-                num_chan = len(data)//3
+                num_chan = len(data)//len(self.subchnls)
                 channels = [int(name[-1]) for name in data.dtype.names[0:num_chan]]
                 
                 for i in channels:
