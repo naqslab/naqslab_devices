@@ -10,26 +10,32 @@ Devices include:
 * Stanford Research 865 Lockin Amplifier
 * Tektronix TDS series oscilloscopes
 * Keysight MSO/DSO X series oscilloscopes
-* Various Legacy CW RF Signal Generators
-    * Rhode & Schwarz SMF 100A
-    * Rhode & Schwarz SMHU
+* Various CW RF Signal Generators
+    * Rohde & Schwarz SMF 100A
+    * Rohde & Schwarz SMA 100B
+    * Rohde & Schwarz SMHU
     * HP 8642A
     * HP 8643A
     * HP 8648A/B/C/D
+    * Keysight E8257N
+    * Keysight/Agilent DC Power Supplies
+        * E364x series tested
     
 The above code is designed to be modular allowing for easy addition of other 
 models, particularly oscilloscopes and CW Signal Generators.
 
 ### How do I get set up? ###
 
-The following works for labscript_devices post version 2.2.0.
+Clone this repository into the labscript suite directory.
 
-Clone this repository into the labscript suite directory. Invoke in labscript 
-scripts like other labscript\_devices
-```python
-from naqslab_devices import ScopeChannel
-from naqslab_devices.KeysightXSeries.labscript_device import KeysightXScope
+#### Valid since labscript\_devices version 2.6.0 ####
+
+Add the following line to the labconfig.ini file under the `[DEFAULT]` section.
 ```
+user_devices = naqslab_devices
+```
+
+#### For labscript\_devices post version 2.2.0. ####
 
 As of now BLACS will only look in the labscript\_devices repository for 
 device classes. 
@@ -103,6 +109,12 @@ is this diff applied to \_\_init\_\_.py in labscript\_devices
 ```
 
 #### Usage ####
+
+Invoke in labscript scripts like other labscript\_devices
+```python
+from naqslab_devices import ScopeChannel
+from naqslab_devices.KeysightXSeries.labscript_device import KeysightXScope
+```
 
 Usage of individual devices varies somewhat. 
 Here is an example connectiontable showing some of their instantiation with
