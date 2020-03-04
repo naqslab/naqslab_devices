@@ -14,7 +14,7 @@ Sphinx Environment
 ------------------
 
 In order to build the documentation from scratch, a functioning ``labscript``
-environment is needed with sphinx also installed. Because sphinx require a large
+environment is needed with sphinx also installed. Because sphinx requires a large
 amount of dependencies, it is recommended to copy your local ``labscript`` environment
 then install and use sphinx from there.
 

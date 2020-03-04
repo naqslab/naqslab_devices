@@ -26,3 +26,4 @@ Other device classes control particular series of devices and implement function
 	NovaTechDDS
 	SR865
 	TektronixTDS
+	KeysightDCSupply

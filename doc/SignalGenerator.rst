@@ -26,8 +26,10 @@ Currently covered models include:
 	 HP_8642A
 	 HP_8643A
 	 HP_8648
+    RS_SMA100B
 	 RS_SMF100A
 	 RS_SMHU
+    KeysightSigGens
 
 Adding a Signal Generator
 -------------------------
@@ -62,6 +64,10 @@ Detailed Documentation
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: naqslab_devices.SignalGenerator.BLACS.RS_SMA100B
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 .. automodule:: naqslab_devices.SignalGenerator.BLACS.RS_SMF100A
    :members:
@@ -70,6 +76,11 @@ Detailed Documentation
 
 
 .. automodule:: naqslab_devices.SignalGenerator.BLACS.RS_SMHU
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: naqslab_devices.SignalGenerator.BLACS.KeysightSigGens
    :members:
    :undoc-members:
    :show-inheritance:
