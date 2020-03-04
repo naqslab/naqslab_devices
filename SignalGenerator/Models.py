@@ -112,7 +112,7 @@ class SRS_SG380(SignalGenerator):
     
     @set_passed_properties(property_names = {
         'connection_table_properties': ['output','freq_limits','amp_limits',
-                                    'scale_factor','amp_scale_factor','mod_type']
+                                    'mod_type']
         })
     def __init__(self, name, VISA_name, output='RF', mod_type='AM'):
         """Saves the user specified output to use and saves for reading by

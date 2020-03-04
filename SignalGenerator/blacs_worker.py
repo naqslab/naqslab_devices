@@ -27,10 +27,6 @@ import labscript_utils.h5_lock, h5py
 # accordingly.
 
 class SignalGeneratorWorker(VISAWorker):
-    # define the scale factor
-    # Writing: scale*desired_freq // Reading:desired_freq/scale
-    scale_factor = 1.0e6
-    amp_scale_factor = 1.0
     
     # define instrument specific read and write strings for Freq & Amp control
     freq_write_string = ''  
