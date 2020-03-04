@@ -18,6 +18,11 @@ labscript_devices.register_classes(
     'RS_SMF100A',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.RS_SMF100A.RS_SMF100ATab',
     runviewer_parser='')
+    
+labscript_devices.register_classes(
+    'RS_SMA100B',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.RS_SMA100B.RS_SMA100BTab',
+    runviewer_parser='')
 
 labscript_devices.register_classes(
     'RS_SMHU',

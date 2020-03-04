@@ -28,6 +28,15 @@ class RS_SMF100A(SignalGenerator):
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (-26, 18) # set in scaled unit (dBm) 
     
+class RS_SMA100B(SignalGenerator):
+    description = 'Rhode & Schwarz SMA100B Signal Generator'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0e9 # ensure that the BLACS worker class has same scale_factor
+    freq_limits = (8e3, 20e9) # set in scaled unit (Hz)
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    amp_limits = (-145, 35) # set in scaled unit (dBm) 
+    
 class RS_SMHU(SignalGenerator):
     description = 'RS SMHU Signal Generator'
     # define the scale factor - converts between BLACS front panel and 
