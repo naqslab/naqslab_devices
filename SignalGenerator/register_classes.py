@@ -58,3 +58,8 @@ labscript_devices.register_classes(
     'HP_8648D',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8648.HP_8648DTab',
     runviewer_parser='')
+    
+labscript_devices.register_classes(
+    'E8257N',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.KeysightSigGens.E8257NTab',
+    runviewer_parser='')
