@@ -28,7 +28,7 @@ import labscript_devices
 # require labscript_devices with arbitrary subfolder support
 check_version('labscript_devices','2.2.0','3')
     
-__version__ = '0.2.7'
+__version__ = '0.2.8'
 __author__ = ['dihm']
 
 ##############################################

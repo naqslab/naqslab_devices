@@ -24,6 +24,11 @@ labscript_devices.register_classes(
     'RS_SMF100A',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.RS_SMF100A.RS_SMF100ATab',
     runviewer_parser='')
+    
+labscript_devices.register_classes(
+    'RS_SMA100B',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.RS_SMA100B.RS_SMA100BTab',
+    runviewer_parser='')
 
 labscript_devices.register_classes(
     'RS_SMHU',
@@ -58,6 +63,11 @@ labscript_devices.register_classes(
 labscript_devices.register_classes(
     'HP_8648D',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.HP_8648.HP_8648DTab',
+    runviewer_parser='')
+    
+labscript_devices.register_classes(
+    'E8257N',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.KeysightSigGens.E8257NTab',
     runviewer_parser='')
 
 labscript_devices.register_classes(
