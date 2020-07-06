@@ -176,6 +176,7 @@ class SRS_SG380Worker(SignalGeneratorWorker):
     def program_properties(self,values):
         # TODO: This needs to be cleaned up a lot
         # Likely when the meta_class gets implemented
+        # need some validation here since output frequency sets valid ranges
         vals = values.copy()
         mod_strings = self.mod_strings[self.mod_type]
         
