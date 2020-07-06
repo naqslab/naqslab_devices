@@ -13,11 +13,6 @@
 # basic init for naqslab_devices
 # defines a version and author
 # also confirms arbitrary subfolder support
-from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
-if PY2:
-    str = unicode
-    
 try:
     from labscript_utils import check_version
 except ImportError:
@@ -28,7 +23,7 @@ import labscript_devices
 # require labscript_devices with arbitrary subfolder support
 check_version('labscript_devices','2.2.0','3')
     
-__version__ = '0.2.8'
+__version__ = '0.3.0'
 __author__ = ['dihm']
 
 ##############################################
