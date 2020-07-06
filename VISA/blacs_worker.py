@@ -14,11 +14,6 @@ Boiler plate BLACS_worker for VISA instruments.
 
 Inheritors use the same communication protocol, but override the command syntax.
 """
-from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2,dedent
-if PY2:
-    str = unicode
-
 from blacs.tab_base_classes import Worker
 
 from labscript import LabscriptError

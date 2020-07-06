@@ -14,11 +14,6 @@ Boiler plate blacs_tab for VISA instruments.
 
 Defines the common STBstatus.ui widget all devices use to report their current status.
 """
-from __future__ import division, unicode_literals, print_function, absolute_import
-from labscript_utils import PY2
-if PY2:
-    str = unicode
-
 from labscript import LabscriptError
      
 from blacs.tab_base_classes import define_state
