@@ -11,18 +11,9 @@
 #####################################################################
 
 # basic init for naqslab_devices
-# defines a version and author
-# also confirms arbitrary subfolder support
-try:
-    from labscript_utils import check_version
-except ImportError:
-    raise ImportError('Require labscript_utils > 2.1.0')
-    
+# defines a version and author    
 import labscript_devices
-    
-# require labscript_devices with arbitrary subfolder support
-check_version('labscript_devices','2.2.0','3')
-    
+
 __version__ = '0.3.0'
 __author__ = ['dihm']
 
