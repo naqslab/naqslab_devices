@@ -17,6 +17,7 @@ Inheritors use the same communication protocol, but override the command syntax.
 from blacs.tab_base_classes import Worker
 
 from labscript import LabscriptError
+from labscript_utils import dedent
 
 import visa      
 
@@ -31,11 +32,7 @@ class VISAWorker(Worker):
             self.connection = self.resourceMan.open_resource(self.VISA_name)
         except visa.VisaIOError:
             msg = '''{:s} not found! Is it connected?'''.format(self.VISA_name)
-            if PY2:
-                raise LabscriptError(dedent(msg))
-            else:
-                # in PY3, suppress the full visa error for a simpler one
-                raise LabscriptError(dedent(msg)) from None
+            raise LabscriptError(dedent(msg)) from None
         self.connection.timeout = 2000
     
     def check_remote_values(self):
