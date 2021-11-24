@@ -19,7 +19,7 @@ from blacs.tab_base_classes import Worker
 from labscript import LabscriptError
 from labscript_utils import dedent
 
-import visa      
+import pyvisa as visa
 
 class VISAWorker(Worker):   
     def init(self):
