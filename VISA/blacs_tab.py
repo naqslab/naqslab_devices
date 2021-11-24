@@ -83,7 +83,8 @@ class VISATab(DeviceTab):
         # Create and set the primary worker
         self.create_worker("main_worker",
                             self.device_worker_class,
-                            self.worker_init_kwargs)
+                            {'address':self.address,
+                            })
         self.primary_worker = "main_worker"       
 
     
