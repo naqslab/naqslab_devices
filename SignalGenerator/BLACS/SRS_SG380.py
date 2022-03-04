@@ -13,6 +13,8 @@ from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
 from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
 from labscript import LabscriptError
 from naqslab_devices.SignalGenerator.modulationcontrol import ModulationControl
+from labscript_utils import dedent
+
 
 class SRS_SG380Tab(SignalGeneratorTab):
     # Capabilities
@@ -21,7 +23,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
     base_decimals = {'freq':9, 'amp':2}
 
     # Event Status Byte Label Definitions for SRS_SG380 models
-    status_byte_labels = {'bit 7':'Power On', 
+    status_byte_labels = {'bit 7':'Power On',
                           'bit 6':'Reserved',
                           'bit 5':'Command Error',
                           'bit 4':'Execution Error',
@@ -29,9 +31,8 @@ class SRS_SG380Tab(SignalGeneratorTab):
                           'bit 2':'Query Error',
                           'bit 1':'Reserved',
                           'bit 0':'Operation Complete'}
-                          
-    # set device properties to use
-    device_properties = {'ENB':{'default':True,'type':'bool','display_name':'Output Enable'}}
+
+    device_properties = {}
     
     # Define modulation settings
     # Note that these settings are the maximum values
@@ -80,7 +81,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
         # send properties to worker
         self.worker_init_kwargs = {'output':self.output,'mod_type':self.mod_type}
         
-        self.prop_widgets['Mod'] = self.initialise_ModControl()
+        self.device_properties = {'freq_mod': self.initialise_ModControl()}
         
         # call parent to finish initialisation of GUI
         SignalGeneratorTab.initialise_GUI(self)
@@ -97,6 +98,7 @@ class SRS_SG380Tab(SignalGeneratorTab):
         mod_controls['RATE'].update(self.mod_defs[self.mod_type]['RATE'])
         mod_controls['DEV'].update(self.mod_defs[self.mod_type]['DEV'])
         
+        #self.device_properties.update(mod_controls)
         self.create_device_properties(mod_controls)
         modWidget = ModulationControl(f'{self.mod_type} Control')
         
@@ -122,10 +124,7 @@ class SRS_SG380Worker(SignalGeneratorWorker):
             ident_string = self.connection.query('*IDN?')
         except:
             msg = '\'*IDN?\' command did not complete. Is %s connected?'
-            if PY2:
-                raise LabscriptError(dedent(msg%self.VISA_name))
-            else:
-                raise LabscriptError(dedent(msg%self.VISA_name)) from None
+            raise LabscriptError(dedent(msg%self.VISA_name)) from None
         
         if 'SG38' not in ident_string:
             msg = '%s is not supported by the SRS_SG380 class.'
@@ -175,9 +174,6 @@ class SRS_SG380Worker(SignalGeneratorWorker):
         vals = values.copy()
         mod_strings = self.mod_strings[self.mod_type]
         
-        if 'ENB' in vals:
-            # output enable
-            self.connection.write(f"ENB{self.amp_outputs[self.output]}{vals.pop('ENB'):d}")
         if 'MODL' in vals:
             # mod enable
             self.connection.write(f"MODL{vals.pop('MODL'):d}")

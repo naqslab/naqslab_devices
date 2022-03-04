@@ -33,11 +33,11 @@ class SignalGeneratorTab(VISATab):
                           'bit 2':'bit 2 label',
                           'bit 1':'bit 1 label',
                           'bit 0':'bit 0 label'}
-                          
+
     device_properties = {}
-    
+
     prop_widgets = {}
-    
+
     def __init__(self,*args,**kwargs):
         if not hasattr(self,'device_worker_class'):
             #raise LabscriptError('%s __init__ method not overridden!'%self)
@@ -62,18 +62,23 @@ class SignalGeneratorTab(VISATab):
         self.create_dds_outputs(dds_prop)
         # Create widgets for output objects
         dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
-        # and auto place the widgets in the UI
-        self.auto_place_widgets(("Frequency Output",dds_widgets))
+        # hack for SG380 devices custom mod control widget
+        if self.device_properties:
+            if 'freq_mod' in self.device_properties:
+                dds_widgets['Mod'] = self.device_properties.pop('freq_mod')
+        widget_list = [("Frequency Output",dds_widgets)]
         # create device property widgets
         if self.device_properties:
             self.create_device_properties(self.device_properties)
             self.prop_widgets.update(self.create_property_widgets(self.device_properties))
-            self.auto_place_widgets(('Device Properties',self.prop_widgets))
-        
+            widget_list.append(('Device Properties',self.prop_widgets))
+        # and auto place the widgets in the UI
+        self.auto_place_widgets(*widget_list)
+
         # call VISATab.initialise to create STB widget
         VISATab.initialise_GUI(self)
 
         # Set the capabilities of this device
         self.supports_remote_value_check(True)
-        self.supports_smart_programming(True) 
-        self.statemachine_timeout_add(10000, self.status_monitor)       
+        self.supports_smart_programming(True)
+        self.statemachine_timeout_add(10000, self.status_monitor)
