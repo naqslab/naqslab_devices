@@ -22,6 +22,20 @@ import labscript_utils.h5_lock, h5py
 # accordingly.
 
 
+class enable_on_off_formatter(str):
+    '''Class overload that converts input bools to ON or OFF string'''
+
+    def format(self, state):
+        if state == 0:
+            s = 'OFF'
+        elif state == 1:
+            s = 'ON'
+        else:
+            raise ValueError('Argument must be 0 or 1 equivalent.')
+
+        return super().format(s)
+
+
 class SignalGeneratorWorker(VISAWorker):    
 
     # define instrument specific read and write strings for Freq & Amp control

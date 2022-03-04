@@ -10,8 +10,10 @@
 #                                                                   #
 #####################################################################
 from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
-from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
+from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker, enable_on_off_formatter
 from labscript import LabscriptError
+from labscript_utils import dedent
+
 
 class RS_SMHUTab(SignalGeneratorTab):
     # Capabilities
@@ -34,6 +36,7 @@ class RS_SMHUTab(SignalGeneratorTab):
         self.device_worker_class = RS_SMHUWorker
         SignalGeneratorTab.__init__(self,*args,**kwargs)      
 
+
 class RS_SMHUWorker(SignalGeneratorWorker):
     # define the scale factor
     # Writing: scale*desired_freq // Reading:desired_freq/scale
@@ -50,11 +53,8 @@ class RS_SMHUWorker(SignalGeneratorWorker):
             # if failure then it probably isn't connected
             self.connection.write('HEADER:OFF;*ESE 60;*SRE 32;*CLS')
         except:
-            msg = 'Initial command to %s did not succeed. Is it connected?'
-            if PY2:
-                raise LabscriptError(dedent(msg%self.VISA_name))
-            else:    
-                raise LabscriptError(dedent(msg%self.VISA_name)) from None
+            msg = 'Initial command to %s did not succeed. Is it connected?'   
+            raise LabscriptError(dedent(msg%self.VISA_name)) from None
         self.esr_mask = 60
     
     # define instrument specific read and write strings for Freq & Amp control
@@ -74,6 +74,11 @@ class RS_SMHUWorker(SignalGeneratorWorker):
         if amp_string == '\n':
             raise LabscriptError('RS SMHU device {0:s} has RF OFF!'.format(self.VISA_name))
         return float(amp_string)
+    enable_write_string = enable_on_off_formatter('LEV:RF {:s}')
+    enable_query_string = 'LEV:RF?'
+    def enable_parser(self,enable_string):
+        '''Output Enable Query for RS SMHU.'''
+        return 'ON' in enable_string
             
     def check_status(self):
         # no real info in stb in these older sig gens, use esr instead
