@@ -12,6 +12,21 @@
 from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
 from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
 from labscript import LabscriptError
+import numpy as np
+
+
+class enable_on_off_formatter(str):
+    '''Class overload that converts input bools to ON or OFF string'''
+
+    def format(self, state):
+        if state == 0:
+            s = 'OF'
+        elif state == 1:
+            s = 'ON'
+        else:
+            raise ValueError('Argument must be 0 or 1 equivalent.')
+
+        return super().format(s)
 
 class HP_8642ATab(SignalGeneratorTab):
     # Capabilities
@@ -59,10 +74,21 @@ class HP_8642AWorker(SignalGeneratorWorker):
         # -202: reverse power is tripped
         amp = float(amp_string.split()[1])
         if amp == -201:
-            raise LabscriptError('RF is off! HP8642A-VISA device: {:s}!'.format(self.VISA_name))
+            return np.nan
         elif amp <= -200:
             raise LabscriptError('HP8642A error code {:d} for VISA device: {:s}'.format(amp,self.VISA_name))
         else:
             # No error on amp read
             return amp
-
+    enable_write_string = enable_on_off_formatter('AP{:s}')
+    enable_query_string = 'APOA'
+    def enable_parser(self, enable_string):
+        '''Query output status by checking for error codes.'''
+        amp = float(enable_string.split()[1])
+        if amp == -201:
+            return False
+        elif amp <= -200:
+            raise LabscriptError('HP8642A error code {:d} for VISA device: {:s}'.format(amp,self.VISA_name))
+        else:
+            # No error on amp read, output enabled
+            return True
