@@ -21,67 +21,106 @@ import labscript_utils.h5_lock, h5py
 # in the BLACS subfolder. Update register_classes.py and __init__.py
 # accordingly.
 
-class SignalGeneratorWorker(VISAWorker):
-    # define the scale factor
-    # Writing: scale*desired_freq // Reading:desired_freq/scale
-    scale_factor = 1.0e6
-    amp_scale_factor = 1.0
-    
+
+class SignalGeneratorWorker(VISAWorker):    
+
     # define instrument specific read and write strings for Freq & Amp control
-    freq_write_string = ''  
-    freq_query_string = '' 
+    freq_write_string = ''
+    freq_query_string = ''
     def freq_parser(self,freq_string):
         '''Frequency Query string parser
-        Needs to be over-ridden'''
+
+        Converts string to float; should be be over-ridden
+        if that is insufficient.
+
+        Args:
+            freq_string (str): String result from query.
+
+        Returns:
+            float: Frequency as a float.
+        '''
         freq = float(freq_string)
         return freq
-    amp_write_string = '' 
-    amp_query_string = '' 
+    amp_write_string = ''
+    amp_query_string = ''
     def amp_parser(self,amp_string):
         '''Amplitude Query string parser
-        Needs to be over-ridden'''
+
+        Converts string to float; should be be over-ridden
+        if that is insufficient.
+
+        Args:
+            amp_string (str): String result from query.
+
+        Returns:
+            float: Amplitude as a float.
+        '''
         amp = float(amp_string)
         return amp
-    
+    enable_write_string = ''
+    enable_query_string = ''
+    def enable_parser(self,enable_string):
+        '''Output Enable Query string parser.
+
+        Converts the string to bool; should be over-ridden
+        if that is insufficient.
+
+        Args:
+            enable_string (str): String result from query.
+
+        Returns:
+            bool: Boolean that indicates if output is enabled or not.
+        '''
+        enable = bool(int(enable_string))
+        return enable
+
     def init(self):
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
-        
+
         # initialize the smart cache
-        self.smart_cache = {'STATIC_DATA': {'freq0':None,'amp0':None}}
-    
+        self.smart_cache = {'STATIC_DATA': {'freq0':None,'amp0':None,'gate0':None}}
+
     def check_remote_values(self):
         # Get the currently output values:
 
         results = {'channel 0':{}}
-        
+
         # these query strings and parsers depend heavily on device
         freq = self.connection.query(self.freq_query_string)
         amp = self.connection.query(self.amp_query_string)
-            
+        enable = self.connection.query(self.enable_query_string)
+
         # Convert string to MHz:
         results['channel 0']['freq'] = self.freq_parser(freq)/self.scale_factor
-            
+
         results['channel 0']['amp'] = self.amp_parser(amp)/self.amp_scale_factor
 
+        results['channel 0']['gate'] = self.enable_parser(enable)
+
         return results
-    
+
     def program_manual(self,front_panel_values):
         freq = front_panel_values['channel 0']['freq']
         amp = front_panel_values['channel 0']['amp']
+        enable = front_panel_values['channel 0']['gate']
 
-        #program with scale factor
+        # program with scale factor
         fcommand = self.freq_write_string.format(freq*self.scale_factor)
         self.connection.write(fcommand)
-        
-        #program with scale factor
+
+        # program with scale factor
         acommand = self.amp_write_string.format(amp*self.amp_scale_factor)
         self.connection.write(acommand)
-        
+
+        # set output state
+        ecommand = self.enable_write_string.format(enable)
+        self.connection.write(ecommand)
+
         # invalidate smart_cache after manual update
-        self.smart_cache['STATIC_DATA'] = {'freq0':None,'amp0':None}
-        
-        return self.check_remote_values()        
+        self.smart_cache['STATIC_DATA'] = {'freq0':None,'amp0':None,'gate0':None}
+
+        return self.check_remote_values()
 
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
         # call parent method to do basic preamble
@@ -93,29 +132,32 @@ class SignalGeneratorWorker(VISAWorker):
             # If there are values to set the unbuffered outputs to, set them now:
             if 'STATIC_DATA' in group:
                 data = group['STATIC_DATA'][:][0]
-                
+
         if data is not None:
             if fresh or data != self.smart_cache['STATIC_DATA']:
-                
+
                 # program freq and amplitude as necessary
                 if data['freq0'] != self.smart_cache['STATIC_DATA']['freq0']:
                     self.connection.write(self.freq_write_string.format(data['freq0']))
                 if data['amp0'] != self.smart_cache['STATIC_DATA']['amp0']:
                     self.connection.write(self.amp_write_string.format(data['amp0']))
-                
+                if data['gate0'] != self.smart_cache['STATIC_DATA']['gate0']:
+                    self.connection.write(self.enable_write_string.format(data['gate0']))
+
                 # update smart_cache
                 self.smart_cache['STATIC_DATA'] = data
 
                 # Save these values into final_values so the GUI can
                 # be updated at the end of the run to reflect them:
                 final_values = {'channel 0':{}}
-                
+
                 final_values['channel 0']['freq'] = data['freq0']/self.scale_factor
                 final_values['channel 0']['amp'] = data['amp0']/self.amp_scale_factor
-                
+                final_values['channel 0']['gate'] = data['gate0']
+
             else:
                 final_values = self.initial_values
-                
+
         return final_values
 
 

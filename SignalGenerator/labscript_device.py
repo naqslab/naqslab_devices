@@ -17,17 +17,20 @@ from labscript_utils import dedent
 
 from naqslab_devices import StaticFreqAmp
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __author__ = ['dihm']
 
 # note, when adding a new model, put the labscript_device inheritor class
 # into Models.py and the BLACS classes into a file named for the device
 # in the BLACS subfolder. Update register_classes.py and __init__.py
 # accordingly.
-                    
+
+
 class SignalGenerator(VISA):
     description = 'Signal Generator'
     allowed_children = [StaticFreqAmp]
+    allowed_chans = [0]
+    enabled_chans = []
     # define the scale factor - converts between BLACS front panel and instr
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
@@ -68,6 +71,22 @@ class SignalGenerator(VISA):
                                                 data)
             raise LabscriptError(dedent(msg))
         return data, self.amp_scale_factor
+
+    def enable_output(self, channel=0):
+        """Enable the output at the device level.
+        
+        This is a software enable only, it cannot be hardware timed.
+
+        Args:
+            channel (int, optional): Channel to enable. Defaults to 0, which
+                is expected for single output devices.
+        """
+
+        if channel in self.allowed_chans:
+            if channel not in self.enabled_chans:
+                self.enabled_chans.append(channel)
+        else:
+            raise LabscriptError(f'Channel {channel} is not a valid option for {self.device.name}')
     
     def generate_code(self, hdf5_file):
         if not len(self.child_devices):
@@ -99,12 +118,14 @@ class SignalGenerator(VISA):
         
         dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
         dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
-        static_dtypes = np.dtype({'names':['freq0','amp0'],'formats':[np.uint64,np.float16]})
+        static_dtypes = np.dtype({'names':['freq0','amp0','gate0'],'formats':[np.uint64,np.float16,bool]})
         static_table = np.zeros(1, dtype=static_dtypes)   
         static_table['freq0'].fill(1)
         static_table['freq0'] = dds.frequency.raw_output[0]
         static_table['amp0'].fill(1)
         static_table['amp0'] = dds.amplitude.raw_output[0]
+        static_table['gate0'].fill(1)
+        static_table['gate0'] = 0 in self.enabled_chans
         grp = hdf5_file.create_group('/devices/'+self.name)
         grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
         self.set_property('frequency_scale_factor', self.scale_factor, location='device_properties')
