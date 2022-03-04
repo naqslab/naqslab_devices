@@ -54,6 +54,8 @@ class RS_SMF100AWorker(SignalGeneratorWorker):
         '''Amplitude Query string parser for SMF100A
         Returns float in instrument units, dBm'''
         return float(amp_string)
+    enable_write_string = 'OUTP:STAT {:d}' # take a bool value
+    enable_query_string = 'OUTP:STAT?' # returns 0 or 1
         
     def check_status(self):
         # call parent method to read status byte register

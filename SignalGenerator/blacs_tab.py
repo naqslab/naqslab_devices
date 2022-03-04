@@ -9,13 +9,14 @@
 #                                                                   #
 #                                                                   #
 #####################################################################
-from naqslab_devices.VISA.blacs_tab import VISATab 
+from naqslab_devices.VISA.blacs_tab import VISATab
 
 # note, when adding a new model, put the labscript_device inheritor class
 # into Models.py and the BLACS classes into a file named for the device
 # in the BLACS subfolder. Update register_classes.py and __init__.py
 # accordingly.
- 
+
+
 class SignalGeneratorTab(VISATab):
     # Capabilities
     base_units = {'freq':'MHz', 'amp':'dBm'}
@@ -42,10 +43,10 @@ class SignalGeneratorTab(VISATab):
             #raise LabscriptError('%s __init__ method not overridden!'%self)
             self.device_worker_class = 'naqslab_devices.SignalGenerator.blacs_worker.MockSignalGeneratorWorker'
         VISATab.__init__(self,*args,**kwargs)
-    
+
     def initialise_GUI(self):
-        # Create the dds channel                                
-        dds_prop = {} 
+        # Create the dds channel
+        dds_prop = {}
         dds_prop['channel 0'] = {} #HP signal generators only have one output
         for subchnl in ['freq', 'amp']:
             dds_prop['channel 0'][subchnl] = {'base_unit':self.base_units[subchnl],
@@ -54,10 +55,11 @@ class SignalGeneratorTab(VISATab):
                                               'step':self.base_step[subchnl],
                                               'decimals':self.base_decimals[subchnl]
                                               }
+        dds_prop['channel 0']['gate'] = {}
 
-       
-        # Create the output objects    
-        self.create_dds_outputs(dds_prop)        
+
+        # Create the output objects
+        self.create_dds_outputs(dds_prop)
         # Create widgets for output objects
         dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
         # and auto place the widgets in the UI

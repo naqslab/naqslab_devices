@@ -10,8 +10,9 @@
 #                                                                   #
 #####################################################################
 from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
-from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
+from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker, enable_on_off_formatter
 from labscript import LabscriptError
+from labscript_utils import dedent
 
 class HP_8648ATab(SignalGeneratorTab):
     # Capabilities
@@ -62,10 +63,7 @@ class HP_8648Worker(SignalGeneratorWorker):
             ident_string = self.connection.query('*IDN?')
         except:
             msg = '\'*IDN?\' command did not complete. Is %s connected?'
-            if PY2:
-                raise LabscriptError(dedent(msg%self.VISA_name))
-            else:
-                raise LabscriptError(dedent(msg%self.VISA_name)) from None
+            raise LabscriptError(dedent(msg%self.VISA_name)) from None
         
         if '8648' not in ident_string:
             msg = '%s is not supported by the HP_8648 class.'
@@ -91,6 +89,11 @@ class HP_8648Worker(SignalGeneratorWorker):
         amp_string format is float in configured units (dBm by default)
         Returns float in instrument units, dBm'''
         return float(amp_string)
+    enable_write_string = enable_on_off_formatter('OUTP:STAT {:s}')
+    enable_query_string = 'OUTP:STAT?'
+    def enable_parser(self,enable_string):
+        '''Output Enable Query for HP 8648.'''
+        return 'ON' in enable_string
         
     def check_status(self):
         # no real info in stb in these older sig gens, use esr instead

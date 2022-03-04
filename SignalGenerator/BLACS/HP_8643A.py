@@ -10,7 +10,7 @@
 #                                                                   #
 #####################################################################
 from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
-from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
+from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker, enable_on_off_formatter
 from labscript import LabscriptError
 
 class HP_8643ATab(SignalGeneratorTab):
@@ -63,6 +63,11 @@ class HP_8643AWorker(SignalGeneratorWorker):
         amp_string format is float in configured units (dBm by default)
         Returns float in instrument units, dBm'''
         return float(amp_string)
+    enable_write_string = enable_on_off_formatter('AMPL:STAT {:s}')
+    enable_query_string = 'AMPL:STAT?'
+    def enable_parser(self,enable_string):
+        '''Output Enable Query for HP 8643.'''
+        return 'ON' in enable_string
         
     def check_status(self):
         # no real info in stb in these older sig gens, use esr instead
