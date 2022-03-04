@@ -9,13 +9,14 @@
 #                                                                   #
 #                                                                   #
 #####################################################################
-from naqslab_devices.VISA.blacs_tab import VISATab 
+from naqslab_devices.VISA.blacs_tab import VISATab
 
 # note, when adding a new model, put the labscript_device inheritor class
 # into Models.py and the BLACS classes into a file named for the device
 # in the BLACS subfolder. Update register_classes.py and __init__.py
 # accordingly.
- 
+
+
 class SignalGeneratorTab(VISATab):
     # Capabilities
     base_units = {'freq':'MHz', 'amp':'dBm'}
@@ -32,20 +33,20 @@ class SignalGeneratorTab(VISATab):
                           'bit 2':'bit 2 label',
                           'bit 1':'bit 1 label',
                           'bit 0':'bit 0 label'}
-                          
+
     device_properties = {}
-    
+
     prop_widgets = {}
-    
+
     def __init__(self,*args,**kwargs):
         if not hasattr(self,'device_worker_class'):
             #raise LabscriptError('%s __init__ method not overridden!'%self)
             self.device_worker_class = 'naqslab_devices.SignalGenerator.blacs_worker.MockSignalGeneratorWorker'
         VISATab.__init__(self,*args,**kwargs)
-    
+
     def initialise_GUI(self):
-        # Create the dds channel                                
-        dds_prop = {} 
+        # Create the dds channel
+        dds_prop = {}
         dds_prop['channel 0'] = {} #HP signal generators only have one output
         for subchnl in ['freq', 'amp']:
             dds_prop['channel 0'][subchnl] = {'base_unit':self.base_units[subchnl],
@@ -54,24 +55,30 @@ class SignalGeneratorTab(VISATab):
                                               'step':self.base_step[subchnl],
                                               'decimals':self.base_decimals[subchnl]
                                               }
+        dds_prop['channel 0']['gate'] = {}
 
-       
-        # Create the output objects    
-        self.create_dds_outputs(dds_prop)        
+
+        # Create the output objects
+        self.create_dds_outputs(dds_prop)
         # Create widgets for output objects
         dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
-        # and auto place the widgets in the UI
-        self.auto_place_widgets(("Frequency Output",dds_widgets))
+        # hack for SG380 devices custom mod control widget
+        if self.device_properties:
+            if 'freq_mod' in self.device_properties:
+                dds_widgets['Mod'] = self.device_properties.pop('freq_mod')
+        widget_list = [("Frequency Output",dds_widgets)]
         # create device property widgets
         if self.device_properties:
             self.create_device_properties(self.device_properties)
             self.prop_widgets.update(self.create_property_widgets(self.device_properties))
-            self.auto_place_widgets(('Device Properties',self.prop_widgets))
-        
+            widget_list.append(('Device Properties',self.prop_widgets))
+        # and auto place the widgets in the UI
+        self.auto_place_widgets(*widget_list)
+
         # call VISATab.initialise to create STB widget
         VISATab.initialise_GUI(self)
 
         # Set the capabilities of this device
         self.supports_remote_value_check(True)
-        self.supports_smart_programming(True) 
-        self.statemachine_timeout_add(10000, self.status_monitor)       
+        self.supports_smart_programming(True)
+        self.statemachine_timeout_add(10000, self.status_monitor)

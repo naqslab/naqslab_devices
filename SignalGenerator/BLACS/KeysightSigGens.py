@@ -18,9 +18,10 @@ from labscript import LabscriptError
 # need this version to ensure labscript device properties are auto-passed to worker
 check_version('blacs','2.8.0','3')
 
+
 class KeysightSigGenTab(SignalGeneratorTab):
     """BLACS Tab for Modern Keysight/Agilent/HP CW Signal Generators
-    
+
     Specific devices should subclass this class and define 
     `base_units`
     `base_min`
@@ -38,11 +39,12 @@ class KeysightSigGenTab(SignalGeneratorTab):
                           'bit 2':'Query Error',
                           'bit 1':'RQC',
                           'bit 0':'Operation Complete'}
-    
+
     def __init__(self,*args,**kwargs):
         self.device_worker_class = KeysightSigGenWorker
-        SignalGeneratorTab.__init__(self,*args,**kwargs) 
-        
+        SignalGeneratorTab.__init__(self,*args,**kwargs)
+
+
 class E8257NTab(KeysightSigGenTab):
     # Capabilities
     base_units = {'freq':'GHz', 'amp':'dBm'}
@@ -50,18 +52,18 @@ class E8257NTab(KeysightSigGenTab):
     base_max = {'freq':40.0,  'amp':20}#max output depends on options/frequency
     base_step = {'freq':1,    'amp':1}
     base_decimals = {'freq':12, 'amp':1}
-    
+
 
 class KeysightSigGenWorker(SignalGeneratorWorker):
     """Generic BLACS worker for Modern Keysight/Agilent/HP CW Signal Generators
-    
+
     This class defines the common frequency/amplitude read/write commands as well
     as general device configuration and communication. It uses the ESR byte
     instead of the standard STB byte for intstrument communications.
-    
+
     The `scale_factor` and `amp_scale_factor` are taken from the labscript
     device specification.
-    
+
     """
     # scale factors defined in labscript device specification
     # Writing: scale*desired_freq // Reading:desired_freq/scale
@@ -73,10 +75,7 @@ class KeysightSigGenWorker(SignalGeneratorWorker):
             ident_string = self.connection.query('*IDN?')
         except:
             msg = '\'*IDN?\' command did not complete. Is %s connected?'
-            if PY2:
-                raise LabscriptError(dedent(msg%self.VISA_name))
-            else:
-                raise LabscriptError(dedent(msg%self.VISA_name)) from None
+            raise LabscriptError(dedent(msg%self.VISA_name)) from None
         
         # log which device connected to to worker terminal
         print('Connected to \n',ident_string)
@@ -93,7 +92,6 @@ class KeysightSigGenWorker(SignalGeneratorWorker):
         '''Frequency Query string parser for Keysight Sig Gens
         freq_string format is float, in Hz
         Returns float in instrument units, Hz (i.e. needs scaling to base_units)'''
-        print(f'Instrument reports {freq_string} Hz')
         return float(freq_string)
     amp_write_string = 'POW:AMPL {:.1f} DBM' #assume accepts one decimal, in dBm
     amp_query_string = 'POW:AMPL?' #returns float in dBm
@@ -102,6 +100,8 @@ class KeysightSigGenWorker(SignalGeneratorWorker):
         amp_string format is float in configured units (dBm by default)
         Returns float in instrument units, dBm'''
         return float(amp_string)
+    enable_write_string = 'OUTP:STAT {:d}'
+    enable_query_string = 'OUTP:STAT?'
         
     def check_status(self):
         # no real info in stb use esr instead
