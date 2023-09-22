@@ -16,7 +16,7 @@ from labscript_utils import check_version
 from labscript import LabscriptError
 
 # need this version to ensure labscript device properties are auto-passed to worker
-check_version('blacs','2.8.0','3')
+check_version('blacs','2.8.0','4')
 
 
 class KeysightSigGenTab(SignalGeneratorTab):
