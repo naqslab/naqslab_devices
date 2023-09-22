@@ -34,7 +34,7 @@ class SignalGenerator(VISA):
     # define the scale factor - converts between BLACS front panel and instr
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
-    freq_limits = (0,1) # set in scaled unit 
+    freq_limits = (0,1) # set in scaled unit
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (0,1) # set in scaled unit
 
@@ -44,12 +44,12 @@ class SignalGenerator(VISA):
         '''VISA_name can be full VISA connection string or NI-MAX alias'''
         # Signal Generators do not have a parent device
         VISA.__init__(self,name,None,VISA_name)
-        
+
     def quantise_freq(self,data, device):
         '''Quantize the frequency in units of Hz and check it's within bounds'''
         # It's faster to add 0.5 then typecast than to round to integers first (device is programmed in Hz):    
         data = np.array((self.scale_factor*data)+0.5, dtype=np.uint64)
-        
+
         # Ensure that frequencies are within bounds:
         if any(data < self.freq_limits[0] )  or any(data > self.freq_limits[1] ):
             msg = '''{:s} {:s} can only have frequencies between 
@@ -58,7 +58,7 @@ class SignalGenerator(VISA):
                                         data)
             raise LabscriptError(dedent(msg))
         return data, self.scale_factor
-        
+
     def quantise_amp(self,data, device):
         '''Quantize the amplitude in units of dBm and check it's within bounds'''
         # Keep as float since programming often done down to 0.1dBm (device is programmed in dBm):                       
@@ -75,7 +75,7 @@ class SignalGenerator(VISA):
 
     def enable_output(self, channel=0):
         """Enable the output at the device level.
-        
+
         This is a software enable only, it cannot be hardware timed.
 
         Args:
@@ -88,7 +88,7 @@ class SignalGenerator(VISA):
                 self.enabled_chans.append(channel)
         else:
             raise LabscriptError(f'Channel {channel} is not a valid option for {self.device.name}')
-    
+
     def generate_code(self, hdf5_file):
         if not len(self.child_devices):
             print(f'No outputs attached to {self.name:s}')
@@ -112,21 +112,21 @@ class SignalGenerator(VISA):
         ignore = dds.frequency.get_change_times()
         dds.frequency.make_timeseries([])
         dds.frequency.expand_timeseries()
-        
+
         ignore = dds.amplitude.get_change_times()
         dds.amplitude.make_timeseries([])
         dds.amplitude.expand_timeseries()
-        
+
         dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
         dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
         static_dtypes = np.dtype({'names':['freq0','amp0','gate0'],'formats':[np.uint64,np.float16,bool]})
-        static_table = np.zeros(1, dtype=static_dtypes)   
+        static_table = np.zeros(1, dtype=static_dtypes)
         static_table['freq0'].fill(1)
         static_table['freq0'] = dds.frequency.raw_output[0]
         static_table['amp0'].fill(1)
         static_table['amp0'] = dds.amplitude.raw_output[0]
-        static_table['gate0'].fill(1)
-        static_table['gate0'] = 0 in self.enabled_chans
+        static_table['gate0'].fill(0)
+        static_table['gate0'] = 0 in self.enabled_chans # returns True if channel 0 enabled
         grp = hdf5_file.create_group('/devices/'+self.name)
         grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
         self.set_property('frequency_scale_factor', self.scale_factor, location='device_properties')
