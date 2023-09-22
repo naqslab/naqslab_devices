@@ -42,13 +42,13 @@ class SRS_SG380Tab(SignalGeneratorTab):
                       'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6, # all internal mod rates depend on center frequency band
                               'base_unit':'Hz','default':1e3}},
                 'FM':{'DEV':{'min':0.1,'max':64e6,'step':1,'decimals':1, #max dev depends on center frequency band
-                              'base_unit':'Hz','default_value':1e3},
+                              'base_unit':'Hz','default':1e3},
                       'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6,
                               'base_unit':'Hz','default':1e3}},
                 'PM':{'DEV':{'min':0,'max':360,'step':1,'decimals':2,
                               'base_unit':'deg','default':0},
                       'RATE':{'min':1e-6,'max':500e3,'step':1,'decimals':6,
-                              'base_unit':'Hz','default_value':1e3}},
+                              'base_unit':'Hz','default':1e3}},
                 'Sweep':{'DEV':{'min':0.1,'max':4.4e9,'step':1,'decimals':1, #range depends heavily on center frequency band
                               'base_unit':'Hz','default':0},
                       'RATE':{'min':1e-6,'max':120,'step':1,'decimals':6,
