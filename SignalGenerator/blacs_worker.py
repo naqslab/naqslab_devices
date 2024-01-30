@@ -87,13 +87,28 @@ class SignalGeneratorWorker(VISAWorker):
         '''
         enable = bool(int(enable_string))
         return enable
+    
+    def update_cache_from_dict(self, front_panel):
+        '''Update the STATIC smart cache from a front_panel dictionary'''
+
+        for chan, d in front_panel.items():
+            chan_n = chan.split(' ')[-1]
+            self.smart_cache['STATIC_DATA']['freq'+chan_n] = d['freq']*self.scale_factor
+            self.smart_cache['STATIC_DATA']['amp'+chan_n] = d['amp']*self.amp_scale_factor
+            self.smart_cache['STATIC_DATA']['gate'+chan_n] = d['gate']
 
     def init(self):
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
 
         # initialize the smart cache
-        self.smart_cache = {'STATIC_DATA': {'freq0':None,'amp0':None,'gate0':None}}
+        static_dtypes = np.dtype({'names':['freq0','amp0','gate0'],
+                                  'formats':[np.uint64,np.float16,bool]})
+        self.smart_cache = {'STATIC_DATA': np.zeros(1, dtype=static_dtypes)}
+
+        # set static smart cache to current state
+        current_state = self.check_remote_values()
+        self.update_cache_from_dict(current_state)
 
     def check_remote_values(self):
         # Get the currently output values:
@@ -131,8 +146,9 @@ class SignalGeneratorWorker(VISAWorker):
         ecommand = self.enable_write_string.format(enable)
         self.connection.write(ecommand)
 
-        # invalidate smart_cache after manual update
-        self.smart_cache['STATIC_DATA'] = {'freq0':None,'amp0':None,'gate0':None}
+        # update smart_cache after manual update
+        updated_state = self.check_remote_values()
+        self.update_cache_from_dict(updated_state)
 
         return self.check_remote_values()
 
@@ -145,9 +161,10 @@ class SignalGeneratorWorker(VISAWorker):
             group = hdf5_file['/devices/'+device_name]
             # If there are values to set the unbuffered outputs to, set them now:
             if 'STATIC_DATA' in group:
-                data = group['STATIC_DATA'][:][0]
+                data = group['STATIC_DATA'][()]
 
         if data is not None:
+
             if fresh or data != self.smart_cache['STATIC_DATA']:
 
                 # program freq and amplitude as necessary
