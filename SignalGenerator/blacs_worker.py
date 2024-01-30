@@ -104,7 +104,7 @@ class SignalGeneratorWorker(VISAWorker):
         # initialize the smart cache
         static_dtypes = np.dtype({'names':['freq0','amp0','gate0'],
                                   'formats':[np.uint64,np.float16,bool]})
-        self.smart_cache = {'STATIC_DATA': np.zeros(1, dtype=static_dtypes)}
+        self.smart_cache = {'STATIC_DATA': np.zeros(1, dtype=static_dtypes)[0]}
 
         # set static smart cache to current state
         current_state = self.check_remote_values()
@@ -161,7 +161,7 @@ class SignalGeneratorWorker(VISAWorker):
             group = hdf5_file['/devices/'+device_name]
             # If there are values to set the unbuffered outputs to, set them now:
             if 'STATIC_DATA' in group:
-                data = group['STATIC_DATA'][()]
+                data = group['STATIC_DATA'][0]
 
         if data is not None:
 
