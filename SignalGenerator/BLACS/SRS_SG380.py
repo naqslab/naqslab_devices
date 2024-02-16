@@ -11,6 +11,7 @@
 #####################################################################
 from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
 from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
+from naqslab_devices.VISA.blacs_worker import VISAWorker
 from labscript import LabscriptError
 from naqslab_devices.SignalGenerator.modulationcontrol import ModulationControl
 from labscript_utils import dedent
@@ -112,14 +113,11 @@ class SRS_SG380Tab(SignalGeneratorTab):
         
 
 class SRS_SG380Worker(SignalGeneratorWorker):
-    # define the scale factor
-    # Writing: scale*desired_freq // Reading:desired_freq/scale
-    scale_factor = 1.0e6
-    amp_scale_factor = 1.0
     
     def init(self):
         '''Calls parent init and sends device specific initialization commands'''        
-        SignalGeneratorWorker.init(self)
+        # initialize VISA interface
+        VISAWorker.init(self)
         try:
             ident_string = self.connection.query('*IDN?')
         except:
@@ -130,6 +128,9 @@ class SRS_SG380Worker(SignalGeneratorWorker):
             msg = '%s is not supported by the SRS_SG380 class.'
             raise LabscriptError(dedent(msg%ident_string))
         
+        # log which device connected to worker terminal
+        print('Connected to \n', ident_string)
+
         # enables ESR status reading
         self.connection.write('*ESE 60;*SRE 32;*CLS')
         self.esr_mask = 60
@@ -153,7 +154,8 @@ class SRS_SG380Worker(SignalGeneratorWorker):
                             'PM':{'FNC':'MFNC','DEV':'PDEV','RATE':'RATE'},
                             'Sweep':{'FNC':'SFNC','DEV':'SDEV','RATE':'SRAT'}}
         
-        
+        # initialize sig-gen now that write/query strings are defined
+        SignalGeneratorWorker.init(self)
     
     def freq_parser(self,freq_string):
         '''Frequency Query string parser for SRS_SG380
