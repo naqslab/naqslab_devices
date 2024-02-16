@@ -12,7 +12,7 @@
 from naqslab_devices.SignalGenerator.blacs_tab import SignalGeneratorTab
 from naqslab_devices.SignalGenerator.blacs_worker import SignalGeneratorWorker
 
-from labscript_utils import check_version
+from labscript_utils import check_version, dedent
 from labscript import LabscriptError
 
 # need this version to ensure labscript device properties are auto-passed to worker
@@ -77,7 +77,7 @@ class KeysightSigGenWorker(SignalGeneratorWorker):
             msg = '\'*IDN?\' command did not complete. Is %s connected?'
             raise LabscriptError(dedent(msg%self.VISA_name)) from None
         
-        # log which device connected to to worker terminal
+        # log which device connected to worker terminal
         print('Connected to \n',ident_string)
         
         # enables ESR status reading
