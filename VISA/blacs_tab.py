@@ -69,11 +69,17 @@ class VISATab(DeviceTab):
             self.bit_labels_widgets[key].setText(self.status_byte_labels[key])
         self.status_ui.clear_button.clicked.connect(self.send_clear)
         
-        
         # Store the VISA name to be used
         self.address = str(self.settings['connection_table'].find_by_name(self.settings["device_name"]).BLACS_connection)
-        #self.device_name = str(self.settings['device_name'])
         
+        # add entries to worker kwargs
+        # this allows inheritors to initialize with added entries for their own workers
+        if not hasattr(self,'worker_init_kwargs'):
+            self.worker_init_kwargs = {}
+            
+        self.worker_init_kwargs['address'] = self.address
+        self.worker_init_kwargs['device_name'] = self.device_name
+
         # Create and set the primary worker
         self.create_worker("main_worker",
                             self.device_worker_class,

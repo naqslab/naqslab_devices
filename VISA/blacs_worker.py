@@ -21,7 +21,8 @@ from labscript_utils import dedent
 
 import pyvisa as visa
 
-class VISAWorker(Worker):   
+class VISAWorker(Worker):
+        
     def init(self):
         """Initializes basic worker and opens VISA connection to device.
         

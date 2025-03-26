@@ -38,7 +38,8 @@ class SignalGenerator(VISA):
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     amp_limits = (0,1) # set in scaled unit
 
-    @set_passed_properties()
+    @set_passed_properties(property_names = {'connection_table_properties':
+            ['scale_factor','amp_scale_factor']})
     def __init__(self, name, VISA_name):
         '''VISA_name can be full VISA connection string or NI-MAX alias'''
         # Signal Generators do not have a parent device

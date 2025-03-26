@@ -14,6 +14,12 @@
 
 import labscript_devices
 
+# Mock Signal Generator Class for testing
+labscript_devices.register_classes(
+    'SignalGenerator',
+    BLACS_tab='naqslab_devices.SignalGenerator.blacs_tab.SignalGeneratorTab',
+    runviewer_parser='')
+
 labscript_devices.register_classes(
     'RS_SMF100A',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.RS_SMF100A.RS_SMF100ATab',
@@ -62,4 +68,19 @@ labscript_devices.register_classes(
 labscript_devices.register_classes(
     'E8257N',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.KeysightSigGens.E8257NTab',
+    runviewer_parser='')
+
+labscript_devices.register_classes(
+    'SRS_SG382',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG380Tab',
+    runviewer_parser='')
+
+labscript_devices.register_classes(
+    'SRS_SG384',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG380Tab',
+    runviewer_parser='')
+
+labscript_devices.register_classes(
+    'SRS_SG386',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG380Tab',
     runviewer_parser='')
