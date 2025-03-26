@@ -57,14 +57,15 @@ class SignalGeneratorTab(VISATab):
         # Create the output objects
         self.create_dds_outputs(dds_prop)
         # Create widgets for output objects
-        dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
+        dds_widgets, _, _ = self.auto_create_widgets()
+        widget_list = [("Frequency Output",dds_widgets)]
         # and auto place the widgets in the UI
-        self.auto_place_widgets(("Frequency Output",dds_widgets))
-        
+        self.auto_place_widgets(*widget_list)
+
         # call VISATab.initialise to create STB widget
         VISATab.initialise_GUI(self)
 
         # Set the capabilities of this device
         self.supports_remote_value_check(True)
-        self.supports_smart_programming(True) 
-        self.statemachine_timeout_add(10000, self.status_monitor)       
+        self.supports_smart_programming(True)
+        self.statemachine_timeout_add(10000, self.status_monitor)
