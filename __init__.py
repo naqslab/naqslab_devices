@@ -14,7 +14,7 @@
 # defines a version and author    
 import labscript_devices
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 __author__ = ['dihm']
 
 ##############################################
