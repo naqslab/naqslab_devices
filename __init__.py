@@ -90,9 +90,9 @@ class StaticFreqAmp(StaticDDS):
     description = 'Frequency Source class for Signal Generators'
 
     def __init__(self, *args, **kwargs):
-        """This instatiates a static frequency output channel.
+        """This instantiates a static frequency output channel.
 
-        Frequency and amplitude limits set here will supercede those dictated
+        Frequency and amplitude limits set here will supersede those dictated
         by the device class, but only when compiling a shot with runmanager.
         Static update limits are enforced by the BLACS Tab for the parent device.
 
@@ -110,7 +110,10 @@ class StaticFreqAmp(StaticDDS):
         super().__init__(*args,**kwargs)
         # set default values within limits specified
         # if not specified, use limits from parent device
-        parent_device = args[1]
+        try:
+            parent_device = kwargs['parent_device']
+        except KeyError:
+            parent_device = args[1]
         freq_limits = kwargs.get('freq_limits')
         amp_limits = kwargs.get('amp_limits')
         if freq_limits is not None:

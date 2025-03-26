@@ -11,6 +11,7 @@
 #####################################################################
 from naqslab_devices.SignalGenerator.labscript_device import SignalGenerator
 from labscript import set_passed_properties, LabscriptError
+from labscript_utils import dedent
 
 __version__ = '0.1.0'
 __author__ = ['dihm']
@@ -167,7 +168,7 @@ class SRS_SG380(SignalGenerator):
             msg = f'''{output} is not a valid output option.
             Please select from {self.outputs}
             '''
-            raise LabscriptError(msg)
+            raise LabscriptError(dedent(msg))
         
         # finish initialization with parent __init__
         SignalGenerator.__init__(self,name,VISA_name)
