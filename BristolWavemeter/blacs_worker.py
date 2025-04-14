@@ -30,13 +30,15 @@ class BristolWavemeterInterface(object):
             self.timeout = 3
             self.conn = telnetlib.Telnet(ip_address)
             self.conn.set_debuglevel(0)
-            self.skipOpeningMessage(0.5) # is this not necessary?
-
+            self.skipOpeningMessage(0.5)
         except Exception as e:
             raise e
         
         identity = self.get_identity()
         print(f'IDN Response: {identity}')
+
+        ## For whatever reason this returns an empty string, but the next time
+        ## it's called / sent, it returns the expected values
         all_meas = self.get_all_meas()
         print(f'ALL Response: {all_meas}')
         # current_status = self.check_status()
@@ -75,7 +77,6 @@ class BristolWavemeterInterface(object):
         msg = b':READ:ALL?\r\n'
         out = self.send_msg(msg)
         out.replace(b'\n\r',b'')
-        # return(out.decode('ascii'))
         return(out.decode('ascii'))
         
     # def readWN(self):
@@ -108,10 +109,13 @@ class BristolWavemeterInterface(object):
         return out.decode('ascii')
     
     def set_PID_setpoint(self, value):
-        msg = b':SENSe:PID:SPO %d', value
-        out = self.send_msg(msg)
-        out.replace(b'\n\r', b'')
-        return out.decode('ascii') 
+        if value >= 350 and value <= 14_000:
+            msg = b':SENSe:PID:SPO %d' % value
+            out = self.send_msg(msg)
+            out.replace(b'\n\r', b'')
+            return out.decode('ascii') 
+        else:
+            raise LabscriptError('Value not within {350 ... 14,000} nm range')
 
     def check_status(self):
         msg = b'*STB?\r\n'
@@ -140,6 +144,9 @@ class BristolWavemeterInterface(object):
                 skip_count += 1
             if skip_count > 2:
                 break
+
+    def close(self):
+        self.conn.close()
 
 class BristolWavemeterWorker(Worker):
     # setup_string = '*ESE'
@@ -181,13 +188,48 @@ class BristolWavemeterWorker(Worker):
         results = {}
         frequency = front_panel_values['frequency']
         results['frequency'] = float(frequency)
-                
+
         # return self.check_remote_values() # this works but overrides front panel with remote
         return results # not sure about this
 
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        # call parent method to do basic preamble
-        Worker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
-        pass
+        self.final_values = initial_values
 
+        print('-----')
+        print('Inside transition_to_buffered func')
+        
+        ## This doesn't work anymore?
+        # Worker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
+        # pass
 
+        with h5py.File(h5file, 'r') as hdf5_file:
+            group = hdf5_file['devices'][device_name]
+
+            pid_instructions = group['PID_instructions']
+
+            if len(pid_instructions) == 0:
+                return {}
+            
+            # print(pid_instructions)
+            setpoint = pid_instructions['setpoint'][0]
+            print(setpoint)
+
+            self.intf.set_PID_setpoint(int(setpoint))
+        print('Leaving transition_to_buffered func')
+        print('-----')
+        
+        return {}
+    
+    def transition_to_manual(self):
+        if self.final_values:
+            self.program_manual(self.final_values)
+        return True
+    
+    def abort_buffered(self):
+        return self.transition_to_manual()
+
+    def abort_transition_to_buffered(self):
+        return self.transition_to_manual()
+    
+    def shutdown(self):
+        self.intf.close()

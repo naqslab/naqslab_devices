@@ -101,10 +101,10 @@ class BristolWavemeterTab(DeviceTab):
         # call VISATab.initialise to create BristolWavemeter widget
         DeviceTab.initialise_GUI(self)
 
-        # Set the capabilities of this device
-        self.supports_remote_value_check(True)
+        # # Set the capabilities of this device
+        self.supports_remote_value_check(False)
         self.supports_smart_programming(True) # TODO is this necessary?
-        # self.statemachine_timeout_add(5000, self.status_monitor)   
+        # # self.statemachine_timeout_add(5000, self.status_monitor)   
                 
         # add entries to worker kwargs
         # this allows inheritors to initialize with added entries for their own workers
@@ -122,35 +122,35 @@ class BristolWavemeterTab(DeviceTab):
         self.primary_worker = "main_worker"       
 
 
-    # # TODO - I think we said to move away from this
-    # # This function gets the status,
-    # # and updates the front panel widgets!
-    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
-    def status_monitor(self):
-        # When called with a queue, this function writes to the queue
-        # when the pulseblaster is waiting. This indicates the end of
-        # an experimental run.
-        self.status = yield(self.queue_work(self._primary_worker,'check_status'))
+    # # # TODO - I think we said to move away from this
+    # # # This function gets the status,
+    # # # and updates the front panel widgets!
+    # @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
+    # def status_monitor(self):
+    #     # When called with a queue, this function writes to the queue
+    #     # when the pulseblaster is waiting. This indicates the end of
+    #     # an experimental run.
+    #     self.status = yield(self.queue_work(self._primary_worker,'check_status'))
 
-        for key in self.status_bits:
-            if self.status[key]:
-                icon = QtGui.QIcon(':/qtutils/fugue/tick')
-            else:
-                icon = QtGui.QIcon(':/qtutils/fugue/cross')
-            pixmap = icon.pixmap(QtCore.QSize(16,16))
-            self.bit_values_widgets[key].setPixmap(pixmap)
+    #     for key in self.status_bits:
+    #         if self.status[key]:
+    #             icon = QtGui.QIcon(':/qtutils/fugue/tick')
+    #         else:
+    #             icon = QtGui.QIcon(':/qtutils/fugue/cross')
+    #         pixmap = icon.pixmap(QtCore.QSize(16,16))
+    #         self.bit_values_widgets[key].setPixmap(pixmap)
         
-    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
-    def wavelength_changed(self,widget=None):
-        value = self.status_ui.sens_comboBox.currentIndex()
-        new_value = yield(self.queue_work(self._primary_worker,'set_wavelength',value))
+    # @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
+    # def wavelength_changed(self,widget=None):
+    #     value = self.status_ui.sens_comboBox.currentIndex()
+    #     new_value = yield(self.queue_work(self._primary_worker,'set_wavelength',value))
         
-        # only update if value is different
-        if new_value != value:
-            # block signals for update
-            self.status_ui.tau_comboBox.blockSignals(True)
-            self.status_ui.tau_comboBox.setCurrentIndex(new_value)
-            self.status_ui.tau_comboBox.blockSignals(False)
+    #     # only update if value is different
+    #     if new_value != value:
+    #         # block signals for update
+    #         self.status_ui.tau_comboBox.blockSignals(True)
+    #         self.status_ui.tau_comboBox.setCurrentIndex(new_value)
+    #         self.status_ui.tau_comboBox.blockSignals(False)
 
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
     def send_clear(self,widget=None):

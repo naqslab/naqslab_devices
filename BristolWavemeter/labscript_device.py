@@ -59,13 +59,15 @@ class BristolWavemeter(Device):
         self.add_device(self._analog_output_backend) 
         # self._analog_output_backend.frequency = 8e5 # lowest value -> 375 nm
 
-    # TODO: how to set this up so it updates the front panel
     # def set_wavelength(self, frequency, units='hz'):
     def set_frequency(self, frequency):
 
         # convert the requested frequency to nm since PID setpoint expressed in nm
         freq_to_wavelength = 3e8 / frequency
-        print('setting frequency to %d\n' % int(freq_to_wavelength))
+
+        # setpoints are ints
+        freq_to_wavelength = int(freq_to_wavelength)
+        print('Frequency to wavelength: %d\n' % freq_to_wavelength)
         ## call looks like: StaticAnalogQuantity.constant(value, units) ##
         
         self._analog_output_backend.constant(freq_to_wavelength)
@@ -79,18 +81,19 @@ class BristolWavemeter(Device):
         for output in self.child_devices:
             index = output.connection
             backend_devices[index] = output
-            # print(output.static_value)
 
         if not backend_devices:
             return
 
         dtypes = np.dtype({
-            'names':['frequency'],
-            'formats':[np.float64]
+            'names':['setpoint'],
+            # 'formats':[np.float64]
+            'formats':['<f8']
             })
+        
         out_table = np.zeros(1, dtype=dtypes)
-        for i, dev in backend_devices.items():
-            out_table['frequency'][:] = dev.static_value 
+        for i, devices in backend_devices.items():
+            out_table['setpoint'][:] = devices.static_value 
 
-        grp = hdf5_file.create_group('/devices/'+self.name)
-        grp.create_dataset('PID_instructions',compression=config.compression,data=out_table) 
+        grp = hdf5_file.create_group('/devices/' + self.name)
+        grp.create_dataset('PID_instructions', compression=config.compression, data=out_table) 
