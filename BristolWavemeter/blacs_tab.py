@@ -24,14 +24,6 @@ class BristolWavemeterTab(DeviceTab):
     status_widget = 'STBstatus.ui'
     STBui_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),status_widget)
 
-    # # Capabilities
-    # def initialize_GUI(self):
-    #     self.base_units =    {'wavelength':'nm-vac'}
-    #     self.base_min =      {'wavelength':0.0}
-    #     self.base_max =      {'wavelength':3000.0}
-    #     self.base_step =     {'wavelength':1}
-    #     self.base_decimals = {'wavelength':1}
-                
     # Event Status Register (ESR) Labels
     status_byte_labels = {
                         'bit 7':'Power On', 
@@ -128,7 +120,6 @@ class BristolWavemeterTab(DeviceTab):
                             })
         self.primary_worker = "main_worker"       
 
-
     # # TODO - I think we said to move away from this
     # # This function gets the status,
     # # and updates the front panel widgets!
@@ -146,18 +137,6 @@ class BristolWavemeterTab(DeviceTab):
                 icon = QtGui.QIcon(':/qtutils/fugue/cross')
             pixmap = icon.pixmap(QtCore.QSize(16,16))
             self.bit_values_widgets[key].setPixmap(pixmap)
-        
-    # @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
-    # def wavelength_changed(self,widget=None):
-    #     value = self.status_ui.sens_comboBox.currentIndex()
-    #     new_value = yield(self.queue_work(self._primary_worker,'set_wavelength',value))
-        
-    #     # only update if value is different
-    #     if new_value != value:
-    #         # block signals for update
-    #         self.status_ui.tau_comboBox.blockSignals(True)
-    #         self.status_ui.tau_comboBox.setCurrentIndex(new_value)
-    #         self.status_ui.tau_comboBox.blockSignals(False)
 
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
     def send_clear(self,widget=None):

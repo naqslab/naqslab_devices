@@ -19,54 +19,12 @@ from labscript_utils.unitconversions.UnitConversionBase import UnitConversion
 __version__ = '0.1.0'
 __author__ = ['Json-To-String']
 
-# class FreqConversion(UnitConversion):
-#     """
-#     A Generic frequency conversion class that covers standard SI prefixes from a base of Hz.
-#     """
-
-#     base_unit = 'Hz' # must be defined here and match default hardware unit in BLACS tab
-
-#     def __init__(self, calibration_parameters = None):
-#         self.parameters = calibration_parameters
-#         if hasattr(self, 'derived_units'):
-#             self.derived_units += ['kHz', 'MHz', 'GHz', 'THz']
-#         else:
-#             self.derived_units = ['kHz', 'MHz', 'GHz', 'THz']
-#         UnitConversion.__init__(self,self.parameters)
-    
-#     def kHz_to_base(self,kHz):
-#         Hz = kHz*1e3
-#         return Hz
-
-#     def kHz_from_base(self,Hz):
-#         kHz = Hz*1e-3
-#         return kHz
-
-#     def MHz_to_base(self,MHz):
-#         Hz = MHz*1e6
-#         return Hz
-
-#     def MHz_from_base(self,Hz):
-#         MHz = Hz*1e-6
-#         return MHz
-
-#     def GHz_to_base(self,GHz):
-#         Hz = GHz*1e9
-#         return Hz
-
-#     def GHz_from_base(self,Hz):
-#         GHz = Hz*1e-9
-#         return GHz
-    
-#     def THz_to_base(self,THz):
-#         Hz = THz*1e12
-#         return Hz
-
-#     def THz_from_base(self,Hz):
-#         THz = Hz*1e-12
-#         return THz
-
 class BristolWavemeterConversion(UnitConversion):
+    """
+    Conversion class to ensure the setpoints are sent as nm.
+    This is used in the instantiation of the backend StaticAnalogOut device. 
+    """
+
     # This must be defined outside of init, and must match the default hardware unit specified within the BLACS tab
     base_unit = 'nm'
 
@@ -128,6 +86,8 @@ class BristolWavemeterConversion(UnitConversion):
         return THz
     
 class BristolWavemeter(Device):
+    """ The main device class for the Bristol Wavemeter, currently only tested with 872 model."""
+
     description = 'BristolWavemeter'
     allowed_children = [StaticAnalogOut]
 
@@ -149,6 +109,8 @@ class BristolWavemeter(Device):
         self.BLACS_connection = ip_address ## double check this
         self.setpoint_type = None
 
+        # We attach a child device only accessed via backend processes here to set 
+        # outputs whose values sent to the h5 file.
         # Prawn{Blaster, DO} devices do something like this
         self._analog_output_backend = StaticAnalogOut(
             name + "Internal",
@@ -156,7 +118,7 @@ class BristolWavemeter(Device):
             connection = "Internal",
             limits=None, # TODO
             unit_conversion_class=BristolWavemeterConversion,
-            unit_conversion_parameters={'magnitudes': ['M', 'G', 'T']},
+            unit_conversion_parameters={'magnitudes': ['k', 'M', 'G', 'T']},
             default_value=default_value,
         )
 
@@ -172,25 +134,15 @@ class BristolWavemeter(Device):
 
         return BristolWavemeterConversion
 
-    # def set_setpoint(self, type: str, value: float, units = None):
     def set_setpoint(self, value: float, units = None):
-        
-        ## -- some unit conversions here -- ##
+        """
+        PID setpoint will be converted to nm if not specified as such.
+        User can specify values in {'Hz', 'MHz', 'GHz', 'THz'}, or if 
+        desired in nm omit units. Since device is a child device, the unit
+        conversions are handled in the instantiation.
+        """
+
         self._analog_output_backend.constant(value, units)
-
-    # def set_frequency(self, frequency, units = None):
-    #     ##
-    #     # convert the requested frequency to nm since PID setpoint expressed in nm
-    #     freq_to_wavelength = 3e8 / frequency
-
-    #     freq_to_wavelength = freq_to_wavelength
-    #     print('Frequency to wavelength: %d\n' % freq_to_wavelength)
-    #     ## call looks like: StaticAnalogQuantity.constant(value, units) ##
-        
-    #     self._analog_output_backend.constant(freq_to_wavelength, units)
-    #     ##
-    #     print(f'Got frequency: {frequency}')
-    #     self._analog_output_backend.constant(frequency, units)
 
     def generate_code(self, hdf5_file):
         '''Generates the transition to buffered code in the h5 file.
