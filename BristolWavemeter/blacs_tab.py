@@ -85,25 +85,32 @@ class BristolWavemeterTab(DeviceTab):
         
         # use AO widgets to mimick functionality
         analog_properties = {
-            'frequency':{
-                'base_unit':'GHz',
-                'min':8e5,
-                'max':1.7647059e5,
-                'step':1e-3,
+            # 'frequency':{
+            #     'base_unit':'Hz',
+            #     'min':2.14285714e13, # freq -> 14,000 nm
+            #     'max':8.57142857e14, # freq -> 350 nm
+            #     'step':1e-3,
+            #     'decimals':6
+            #     },
+            'wavelength':{
+                'base_unit':'nm',
+                'min':14000, # freq -> 14,000 nm
+                'max':350, # freq -> 350 nm
+                'step':1e-6,
                 'decimals':6
                 },
             }
       
         self.create_analog_outputs(analog_properties)
         ao_widgets = self.create_analog_widgets(analog_properties)
-        self.auto_place_widgets(('Frequency',ao_widgets))
+        self.auto_place_widgets(('wavelength',ao_widgets))
         
         # call VISATab.initialise to create BristolWavemeter widget
         DeviceTab.initialise_GUI(self)
 
         # # Set the capabilities of this device
         self.supports_remote_value_check(False)
-        self.supports_smart_programming(True) # TODO is this necessary?
+        self.supports_smart_programming(True)
         # # self.statemachine_timeout_add(5000, self.status_monitor)   
                 
         # add entries to worker kwargs
@@ -122,23 +129,23 @@ class BristolWavemeterTab(DeviceTab):
         self.primary_worker = "main_worker"       
 
 
-    # # # TODO - I think we said to move away from this
-    # # # This function gets the status,
-    # # # and updates the front panel widgets!
-    # @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
-    # def status_monitor(self):
-    #     # When called with a queue, this function writes to the queue
-    #     # when the pulseblaster is waiting. This indicates the end of
-    #     # an experimental run.
-    #     self.status = yield(self.queue_work(self._primary_worker,'check_status'))
+    # # TODO - I think we said to move away from this
+    # # This function gets the status,
+    # # and updates the front panel widgets!
+    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
+    def status_monitor(self):
+        # When called with a queue, this function writes to the queue
+        # when the pulseblaster is waiting. This indicates the end of
+        # an experimental run.
+        self.status = yield(self.queue_work(self._primary_worker,'check_status'))
 
-    #     for key in self.status_bits:
-    #         if self.status[key]:
-    #             icon = QtGui.QIcon(':/qtutils/fugue/tick')
-    #         else:
-    #             icon = QtGui.QIcon(':/qtutils/fugue/cross')
-    #         pixmap = icon.pixmap(QtCore.QSize(16,16))
-    #         self.bit_values_widgets[key].setPixmap(pixmap)
+        for key in self.status_bits:
+            if self.status[key]:
+                icon = QtGui.QIcon(':/qtutils/fugue/tick')
+            else:
+                icon = QtGui.QIcon(':/qtutils/fugue/cross')
+            pixmap = icon.pixmap(QtCore.QSize(16,16))
+            self.bit_values_widgets[key].setPixmap(pixmap)
         
     # @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True,True)
     # def wavelength_changed(self,widget=None):

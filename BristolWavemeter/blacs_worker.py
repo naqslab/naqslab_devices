@@ -40,7 +40,7 @@ class BristolWavemeterInterface(object):
         ## For whatever reason this returns an empty string, but the next time
         ## it's called / sent, it returns the expected values
         all_meas = self.get_all_meas()
-        print(f'ALL Response: {all_meas}')
+        # print(f'ALL Response: {all_meas}')
         # current_status = self.check_status()
         # print(f'Current status is: {current_status}')
 
@@ -115,6 +115,7 @@ class BristolWavemeterInterface(object):
             out.replace(b'\n\r', b'')
             return out.decode('ascii') 
         else:
+            # Requested frequencies need to be within {21428, 857143 }
             raise LabscriptError('Value not within {350 ... 14,000} nm range')
 
     def check_status(self):
@@ -133,7 +134,7 @@ class BristolWavemeterInterface(object):
     #     return self.convert_register(esr)
 
     ##Skip the opening telnet connection message.
-    #@param wait_sec - time taken to read input message x3
+    # @param wait_sec - time taken to read input message x3
     def skipOpeningMessage(self, wait_sec):
         print('{}'.format("testing connection"))
         skip_count = 0
@@ -166,12 +167,12 @@ class BristolWavemeterWorker(Worker):
         all_vals_list = all_vals.split(',')
 
         wavelength = all_vals_list[2].strip()
-        try:
-            frequency = 3e8 / float(wavelength)
-            results['frequency'] = frequency
-        except ZeroDivisionError:
-            results['frequency'] = 0.0
-
+        # try:
+        #     frequency = 3e8 / float(wavelength)
+        #     results['frequency'] = frequency
+        # except ZeroDivisionError:
+        #     results['frequency'] = 0.0
+        results['wavelength'] = wavelength
         return results
     
     # def remote_update_front_panel(self, front_panel_values):
@@ -186,8 +187,10 @@ class BristolWavemeterWorker(Worker):
         print(f'Front panel values: {front_panel_values}')
 
         results = {}
-        frequency = front_panel_values['frequency']
-        results['frequency'] = float(frequency)
+        # frequency = front_panel_values['frequency']
+        # results['frequency'] = float(frequency)
+        wavelength = front_panel_values['wavelength']
+        results['wavelength'] = float(wavelength)
 
         # return self.check_remote_values() # this works but overrides front panel with remote
         return results # not sure about this
@@ -195,8 +198,8 @@ class BristolWavemeterWorker(Worker):
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
         self.final_values = initial_values
 
-        print('-----')
-        print('Inside transition_to_buffered func')
+        # print('-----')
+        # print('Inside transition_to_buffered func')
         
         ## This doesn't work anymore?
         # Worker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
@@ -213,13 +216,23 @@ class BristolWavemeterWorker(Worker):
             # print(pid_instructions)
             setpoint = pid_instructions['setpoint'][0]
             print(setpoint)
+            self.logger.info(f'Setpoint: {setpoint}')
 
-            self.intf.set_PID_setpoint(int(setpoint))
-        print('Leaving transition_to_buffered func')
-        print('-----')
+            self.intf.set_PID_setpoint(setpoint)
+
+        # print('Leaving transition_to_buffered func')
+        # print('-----')
+        self.logger.info('Setpoint successfully set, exiting transition to buffered')
         
         return {}
     
+    def clear(self, value):
+        # This currently only works once?
+        # In the source (VISA_Worker) it passes in value and a comment implies it gets used but I'm not sure
+        out = self.intf.send_msg(b'*CLS')
+        print(out)
+        print(out.decode('ascii'))
+
     def transition_to_manual(self):
         if self.final_values:
             self.program_manual(self.final_values)
