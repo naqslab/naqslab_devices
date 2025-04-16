@@ -30,7 +30,6 @@ class SignalGenerator(VISA):
     description = 'Signal Generator'
     allowed_children = [StaticFreqAmp]
     allowed_chans = [0]
-    enabled_chans = []
     # define the scale factor - converts between BLACS front panel and instr
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     scale_factor = 1.0e6 # ensure that the BLACS worker class has same scale_factor
@@ -44,6 +43,9 @@ class SignalGenerator(VISA):
         '''VISA_name can be full VISA connection string or NI-MAX alias'''
         # Signal Generators do not have a parent device
         VISA.__init__(self,name,None,VISA_name)
+
+        # set that contains which channels are enabled for each run
+        self.enabled_chans = set()
 
     def quantise_freq(self,data, device):
         '''Quantize the frequency in units of Hz and check it's within bounds'''
@@ -85,7 +87,7 @@ class SignalGenerator(VISA):
 
         if channel in self.allowed_chans:
             if channel not in self.enabled_chans:
-                self.enabled_chans.append(channel)
+                self.enabled_chans.add(channel)
         else:
             raise LabscriptError(f'Channel {channel} is not a valid option for {self.device.name}')
 
