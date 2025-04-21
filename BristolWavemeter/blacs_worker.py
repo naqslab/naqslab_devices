@@ -40,6 +40,10 @@ class BristolWavemeterInterface(object):
 
         current_status = self.check_status()
         print(f'Current status is: {current_status}')
+        
+        if current_status != 0:
+            question_byte = self.check_questionable()
+            print(f'Questionable byte is: {question_byte}')
 
     def send_msg(self, msg):
         """
@@ -114,6 +118,30 @@ class BristolWavemeterInterface(object):
             # Requested frequencies need to be within {21428, 857143 }
             raise LabscriptError('Value not within {350 ... 14,000} nm range')
 
+    def convert_register(self,register):
+        """Converts returned register value to dict of bools
+        
+        Args:
+            register (int): Status register value returned from 
+                            :obj:`check_status`
+            
+        Returns:
+            dict: Status byte dictionary as formatted in :obj:`blacs_tab`
+        """
+        results = {}
+        #get the status and convert to binary, and take off the '0b' header:
+        status = bin(register)[2:]
+        # if the status is less than 8 bits long, pad the start with zeros!
+        while len(status)<8:
+            status = '0'+status
+        # reverse the status string so bit 0 is first indexed
+        status = status[::-1]
+        # fill the status byte dictionary
+        for i in range(0,8):
+            results['bit '+str(i)] = bool(int(status[i]))
+        
+        return results
+
     def check_status(self):
         """
         Response is a sum of all the set bit values of the table below:
@@ -123,27 +151,15 @@ class BristolWavemeterInterface(object):
         2   |   4       | A bit is set in the event status register
         """
         msg = b'*STB?\r\n'
-        out = self.send_msg(msg)
-        # out.replace(b'\n\r',b'')
-        # out = out.decode('ascii')
-        mask = 122
-        try:
-            error_code = int(out) & mask
-            return error_code        
-        except:
-            # raise Exception('out is not an int')
-            return out
-    #     if error_code:
-    #         # error exists, but nothing to report beyond register value
-    #         print('{:s} has ESR = {:d}'.format(self.name, error_code))
-    #     return self.convert_register(esr)
+        stb = self.send_msg(msg)
+        stb = stb.decode('ascii')
+
+        return self.convert_register(int(stb))
 
     def check_questionable(self):
-        msg = b'*STAT:QUES:COND?\r\n'
+        msg = b':STAT:QUES:COND?\r\n'
         out = self.send_msg(msg)
-        # out.replace(b'\n\r',b'')
-        # out = out.decode('ascii')
-        return out
+        return out.decode('ascii')
 
     def check_errors(self):
         """

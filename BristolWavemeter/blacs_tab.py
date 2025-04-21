@@ -24,18 +24,19 @@ class BristolWavemeterTab(DeviceTab):
     status_widget = 'STBstatus.ui'
     STBui_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),status_widget)
 
-    # Event Status Register (ESR) Labels
-    status_byte_labels = {
-                        'bit 7':'Power On', 
-                        'bit 6':'unused',
-                        'bit 5':'Command Error',
-                        'bit 4':'Execution Error',
-                        'bit 3':'Device Dependent Error',
-                        'bit 2':'Query Error',
-                        'bit 1':'unused',
-                        'bit 0':'OPC'
-                        }
-    # instrument status bytes
+    # # Event Status Enable Register (ESE) Labels
+    # status_byte_labels = {
+    #                     'bit 7':'Power On', 
+    #                     'bit 6':'unused',
+    #                     'bit 5':'Command Error',
+    #                     'bit 4':'Execution Error',
+    #                     'bit 3':'Device Dependent Error',
+    #                     'bit 2':'Query Error',
+    #                     'bit 1':'unused',
+    #                     'bit 0':'OPC'
+    #                     }
+    
+    # *STB? labels
     status_byte_labels = {
                         'bit 7':'unused', 
                         'bit 6':'unused',
@@ -77,17 +78,11 @@ class BristolWavemeterTab(DeviceTab):
         
         # use AO widgets to mimick functionality
         analog_properties = {
-            # 'frequency':{
-            #     'base_unit':'Hz',
-            #     'min':2.14285714e13, # freq -> 14,000 nm
-            #     'max':8.57142857e14, # freq -> 350 nm
-            #     'step':1e-3,
-            #     'decimals':6
-            #     },
+
             'wavelength':{
                 'base_unit':'nm',
-                'min':14000, # freq -> 14,000 nm
-                'max':350, # freq -> 350 nm
+                'min':14000, # nm
+                'max':350, # nm
                 'step':1e-6,
                 'decimals':6
                 },
@@ -95,7 +90,7 @@ class BristolWavemeterTab(DeviceTab):
       
         self.create_analog_outputs(analog_properties)
         ao_widgets = self.create_analog_widgets(analog_properties)
-        self.auto_place_widgets(('wavelength',ao_widgets))
+        self.auto_place_widgets(('wavelength', ao_widgets))
         
         # call VISATab.initialise to create BristolWavemeter widget
         DeviceTab.initialise_GUI(self)
@@ -103,7 +98,7 @@ class BristolWavemeterTab(DeviceTab):
         # # Set the capabilities of this device
         self.supports_remote_value_check(False)
         self.supports_smart_programming(True)
-        # # self.statemachine_timeout_add(5000, self.status_monitor)   
+        self.statemachine_timeout_add(5000, self.status_monitor)   
                 
         # add entries to worker kwargs
         # this allows inheritors to initialize with added entries for their own workers
@@ -120,7 +115,6 @@ class BristolWavemeterTab(DeviceTab):
                             })
         self.primary_worker = "main_worker"       
 
-    # # TODO - I think we said to move away from this
     # # This function gets the status,
     # # and updates the front panel widgets!
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  

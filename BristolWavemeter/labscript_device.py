@@ -86,7 +86,10 @@ class BristolWavemeterConversion(UnitConversion):
         return THz
     
 class BristolWavemeter(Device):
-    """ The main device class for the Bristol Wavemeter, currently only tested with 872 model."""
+    """
+    The main device class for the Bristol Wavemeter, 
+    currently only tested with 872 model.
+    """
 
     description = 'BristolWavemeter'
     allowed_children = [StaticAnalogOut]
