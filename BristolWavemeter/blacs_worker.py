@@ -30,43 +30,42 @@ class BristolWavemeterInterface(object):
             self.timeout = 3
             self.conn = telnetlib.Telnet(ip_address)
             self.conn.set_debuglevel(0)
-            self.skipOpeningMessage(0.5)
+            # self.skipOpeningMessage(0.5)
         except Exception as e:
             raise e
-        
-        identity = self.get_identity()
-        print(f'IDN Response: {identity}')
 
-        ## For whatever reason this returns an empty string, but the next time
-        ## it's called / sent, it returns the expected values
         all_meas = self.get_all_meas()
-        # print(f'ALL Response: {all_meas}')
-        # current_status = self.check_status()
-        # print(f'Current status is: {current_status}')
+        print(f'Scan index, instrument status, wavelength, power')
+        print(f'{all_meas}')
 
-        # current_wavelength = self.get_wavelength()
-        # print(f'Current wavelength is: {current_wavelength}')
-
-        # PID_capable = self.check_if_PID()
-        # print(f'PID: {PID_capable}')
+        current_status = self.check_status()
+        print(f'Current status is: {current_status}')
 
     def send_msg(self, msg):
+        """
+        Main method to invoke to send a SCPI command, returns response
+        """
         read_msg = msg + b'\r\n'
         self.conn.write(read_msg)
-        skip_count = 0
         out = b''
         while(True):
             out = self.conn.read_some()
-            if out != b'' and out != b'1':
-                # print(out)
+            # if out != b'' and out != b'1':
+            if out != b'':
                 return out
-
-    def get_identity(self):
-        msg = b'*IDN?\r\n'
-        out = self.send_msg(msg)
-        out.replace(b'\n\r',b'')
-        return(out.decode('ascii'))
             
+    def send_msg_no_read(self, msg):
+        """
+        SCPI command send, without response
+        """
+        read_msg = msg + b'\r\n'
+        self.conn.write(read_msg)
+
+    # def get_identity(self):
+    #     msg = b'*IDN?\r\n'
+    #     out = self.send_msg(msg)
+    #     return out
+
     def get_wavelength(self):
         msg = b':READ:WAV?\r\n'
         out = self.send_msg(msg)
@@ -78,12 +77,7 @@ class BristolWavemeterInterface(object):
         out = self.send_msg(msg)
         out.replace(b'\n\r',b'')
         return(out.decode('ascii'))
-        
-    # def readWN(self):
-    #     msg = b':READ:WNUM?\r\n'
-    #     out = self.send_msg(msg)
-    #     out.replace(b'\n\r',b'')
-    #     return float(out.decode('ascii'))
+        # return out
 
     def convert_register(self,register):
         """Converts returned register value to dict of bools
@@ -109,30 +103,57 @@ class BristolWavemeterInterface(object):
         return out.decode('ascii')
     
     def set_PID_setpoint(self, value):
+        print('Entering setpoint func')
         if value >= 350 and value <= 14_000:
             msg = b':SENSe:PID:SPO %d' % value
-            out = self.send_msg(msg)
-            out.replace(b'\n\r', b'')
-            return out.decode('ascii') 
+            out = self.send_msg_no_read(msg)
+            # out.replace(b'\n\r', b'')
+            print('Exiting setpoint func')
+            # return out.decode('ascii') 
         else:
             # Requested frequencies need to be within {21428, 857143 }
             raise LabscriptError('Value not within {350 ... 14,000} nm range')
 
     def check_status(self):
+        """
+        Response is a sum of all the set bit values of the table below:
+        Bit | Bit Value |                       Condition
+        5   |   32      | A bit is set in the questionable register (see STATus subsystem)
+        3   |   8       | The errors in the error queue (see SYSTem subsystem)
+        2   |   4       | A bit is set in the event status register
+        """
         msg = b'*STB?\r\n'
         out = self.send_msg(msg)
-        out.replace(b'\n\r',b'')
-        out = out.decode('ascii')
+        # out.replace(b'\n\r',b'')
+        # out = out.decode('ascii')
         mask = 122
-        error_code = out & mask
-        return error_code
-        
+        try:
+            error_code = int(out) & mask
+            return error_code        
+        except:
+            # raise Exception('out is not an int')
+            return out
     #     if error_code:
     #         # error exists, but nothing to report beyond register value
     #         print('{:s} has ESR = {:d}'.format(self.name, error_code))
-        
     #     return self.convert_register(esr)
 
+    def check_questionable(self):
+        msg = b'*STAT:QUES:COND?\r\n'
+        out = self.send_msg(msg)
+        # out.replace(b'\n\r',b'')
+        # out = out.decode('ascii')
+        return out
+
+    def check_errors(self):
+        """
+        Returns error string from SCPI (30 entry) FIFO Error Queue.
+        """
+
+        msg = b':SYST:ERR?\r\n'
+        out = self.send_msg(msg)
+        return out
+    
     ##Skip the opening telnet connection message.
     # @param wait_sec - time taken to read input message x3
     def skipOpeningMessage(self, wait_sec):
@@ -151,7 +172,6 @@ class BristolWavemeterInterface(object):
 
 class BristolWavemeterWorker(Worker):
     # setup_string = '*ESE'
-    
     def init(self):
         Worker.init(self)
         self.intf = BristolWavemeterInterface(self.ip_address)
@@ -164,46 +184,32 @@ class BristolWavemeterWorker(Worker):
         results = {}
         all_vals = self.intf.get_all_meas()
         print(f"check_remote_values: all_vals: {all_vals}")
+        # print(f"vs front panel: {front_panel_values}")
         all_vals_list = all_vals.split(',')
 
-        wavelength = all_vals_list[2].strip()
-        # try:
-        #     frequency = 3e8 / float(wavelength)
-        #     results['frequency'] = frequency
-        # except ZeroDivisionError:
-        #     results['frequency'] = 0.0
+        try:
+            wavelength = all_vals_list[2].strip()
+        except:
+            raise Exception('Something wrong with measurement response')
+
         results['wavelength'] = wavelength
         return results
     
-    # def remote_update_front_panel(self, front_panel_values):
-    #     current_remote = self.check_remote_values()
-    #     try:
-    #         self.program_manual(current_remote['wavelength'])
-    #     except Exception as e:
-    #         raise e
-    
-    def program_manual(self,front_panel_values):
+    def program_manual(self, front_panel_values):
         '''Performs manual updates from BLACS front panel.'''
         print(f'Front panel values: {front_panel_values}')
 
         results = {}
-        # frequency = front_panel_values['frequency']
-        # results['frequency'] = float(frequency)
         wavelength = front_panel_values['wavelength']
         results['wavelength'] = float(wavelength)
 
-        # return self.check_remote_values() # this works but overrides front panel with remote
-        return results # not sure about this
+        return self.check_remote_values() # this works but overrides front panel with remote
+        # return results # not sure about this
 
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
         self.final_values = initial_values
 
-        # print('-----')
-        # print('Inside transition_to_buffered func')
-        
-        ## This doesn't work anymore?
-        # Worker.transition_to_buffered(self,device_name,h5file,initial_values,fresh)
-        # pass
+        self.logger.info('Reading setpoint from instruction .h5 file')
 
         with h5py.File(h5file, 'r') as hdf5_file:
             group = hdf5_file['devices'][device_name]
@@ -215,23 +221,16 @@ class BristolWavemeterWorker(Worker):
             
             # print(pid_instructions)
             setpoint = pid_instructions['setpoint'][0]
-            print(setpoint)
-            self.logger.info(f'Setpoint: {setpoint}')
+            self.logger.info(f'Read setpoint: {setpoint}')
 
             self.intf.set_PID_setpoint(setpoint)
 
-        # print('Leaving transition_to_buffered func')
-        # print('-----')
         self.logger.info('Setpoint successfully set, exiting transition to buffered')
         
         return {}
     
     def clear(self, value):
-        # This currently only works once?
-        # In the source (VISA_Worker) it passes in value and a comment implies it gets used but I'm not sure
-        out = self.intf.send_msg(b'*CLS')
-        print(out)
-        print(out.decode('ascii'))
+        self.intf.send_msg_no_read(b'*CLS\r\n')
 
     def transition_to_manual(self):
         if self.final_values:
