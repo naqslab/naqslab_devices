@@ -197,8 +197,8 @@ class BristolWavemeterWorker(Worker):
     def check_remote_values(self):
         results = {}
         all_vals = self.intf.get_all_meas()
-        print(f"check_remote_values: all_vals: {all_vals}")
-        # print(f"vs front panel: {front_panel_values}")
+        self.logger.info(f"check_remote_values: all_vals: {all_vals}")
+        # self.logger.info(f"vs front panel: {front_panel_values}")
         all_vals_list = all_vals.split(',')
 
         try:
@@ -211,7 +211,7 @@ class BristolWavemeterWorker(Worker):
     
     def program_manual(self, front_panel_values):
         '''Performs manual updates from BLACS front panel.'''
-        print(f'Front panel values: {front_panel_values}')
+        self.logger.info(f'Front panel values: {front_panel_values}')
 
         results = {}
         wavelength = front_panel_values['wavelength']
@@ -219,8 +219,7 @@ class BristolWavemeterWorker(Worker):
 
         self.intf.set_PID_setpoint(float(wavelength))
 
-        # return self.check_remote_values() # this works but overrides front panel with remote
-        return results # not sure about this
+        return results
 
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
         self.final_values = initial_values
@@ -235,7 +234,6 @@ class BristolWavemeterWorker(Worker):
             if len(pid_instructions) == 0:
                 return {}
             
-            # print(pid_instructions)
             setpoint = pid_instructions['setpoint'][0]
             self.logger.info(f'Read setpoint: {setpoint}')
 
@@ -243,7 +241,7 @@ class BristolWavemeterWorker(Worker):
 
         self.logger.info('Setpoint successfully set, exiting transition to buffered')
         
-        return {}
+        return self.final_values
     
     def clear(self, value):
         self.intf.send_msg_no_read(b'*CLS\r\n')
