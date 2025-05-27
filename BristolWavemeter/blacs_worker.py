@@ -107,12 +107,10 @@ class BristolWavemeterInterface(object):
         return out.decode('ascii')
     
     def set_PID_setpoint(self, value):
-        print('Entering setpoint func')
         if value >= 350 and value <= 14_000:
-            msg = b':SENSe:PID:SPO %d' % value
+            msg = b':SENSe:PID:SPO %f' % value
             out = self.send_msg_no_read(msg)
             # out.replace(b'\n\r', b'')
-            print('Exiting setpoint func')
             # return out.decode('ascii') 
         else:
             # Requested frequencies need to be within {21428, 857143 }
@@ -219,8 +217,10 @@ class BristolWavemeterWorker(Worker):
         wavelength = front_panel_values['wavelength']
         results['wavelength'] = float(wavelength)
 
-        return self.check_remote_values() # this works but overrides front panel with remote
-        # return results # not sure about this
+        self.intf.set_PID_setpoint(float(wavelength))
+
+        # return self.check_remote_values() # this works but overrides front panel with remote
+        return results # not sure about this
 
     def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
         self.final_values = initial_values
