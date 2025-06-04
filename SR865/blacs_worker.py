@@ -48,7 +48,6 @@ class SR865Worker(VISAWorker):
     def init(self):
         # Call the VISA init to initialise the VISA connection
         VISAWorker.init(self)
-        
         # initial configure of the instrument
         self.connection.write('*ESE 122;*CLS;')
     
@@ -69,11 +68,17 @@ class SR865Worker(VISAWorker):
     def program_manual(self,front_panel_values):
         '''Performans manual updates from BLACS front panel.
         Tau and Sensitivity settings are coerced to nearest allowed value'''
-        tau_i = self.coerce_tau(front_panel_values['tau'])
-        sens_i = self.coerce_sens(front_panel_values['sens'])
-        phase = front_panel_values['phase']
-        
-        self.connection.write(self.program_string.format(tau_i,sens_i,phase))
+
+        if self.use_enums_option == False:
+            tau_i = self.coerce_tau(front_panel_values['tau'])
+            sens_i = self.coerce_sens(front_panel_values['sens'])
+            phase = front_panel_values['phase']
+            self.connection.write(self.program_string.format(tau_i,sens_i,phase))
+        else:
+            tau = front_panel_values['tau']
+            sens = front_panel_values['sens']
+            phase = front_panel_values['phase']
+            self.connection.write(self.program_string.format(tau,sens,phase))
                 
         return self.check_remote_values()        
 

@@ -34,12 +34,18 @@ class SR865(VISA):
     sens = None
     phase = None
 
-    @set_passed_properties()
-    def __init__(self, name, VISA_name):
+    @set_passed_properties(        
+        property_names={
+            'connection_table_properties': [
+                'use_enums_option',
+            ]
+        })    
+    def __init__(self, name, VISA_name, use_enums_option=False):
         '''VISA_name can be full VISA connection string or NI-MAX alias'''
         # does not have a parent device
         VISA.__init__(self,name,None,VISA_name)
-        
+        self.use_enums_option = use_enums_option
+
     def set_tau(self, tau_constant):
         '''Set the time constant in seconds.
         Uses numpy digitize to translate to int values.
