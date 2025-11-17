@@ -198,6 +198,7 @@ class DG4000(SignalGenerator):
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     # define variable limit
     freq_max = 0
+    allowed_chans = [1, 2]
     """Maximum output frequency of the device.
     
     Note: actual max frequency is mode dependent.

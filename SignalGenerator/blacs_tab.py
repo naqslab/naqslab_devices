@@ -41,17 +41,23 @@ class SignalGeneratorTab(VISATab):
         VISATab.__init__(self,*args,**kwargs)
 
     def initialise_GUI(self):
-        # Create the dds channel
+        # Create the dds channel(s)
+
+        conn_obj = self.settings['connection_table'].find_by_name(self.device_name).properties
+
+        allowed_chans = conn_obj['allowed_chans']
+
         dds_prop = {}
-        dds_prop['channel 0'] = {} #HP signal generators only have one output
-        for subchnl in ['freq', 'amp']:
-            dds_prop['channel 0'][subchnl] = {'base_unit':self.base_units[subchnl],
-                                              'min':self.base_min[subchnl],
-                                              'max':self.base_max[subchnl],
-                                              'step':self.base_step[subchnl],
-                                              'decimals':self.base_decimals[subchnl]
-                                              }
-        dds_prop['channel 0']['gate'] = {}
+        for i in allowed_chans:
+            dds_prop[f'channel {i:d}'] = {}
+            for subchnl in ['freq', 'amp']:
+                dds_prop[f'channel {i:d}'][subchnl] = {'base_unit':self.base_units[subchnl],
+                                                'min':self.base_min[subchnl],
+                                                'max':self.base_max[subchnl],
+                                                'step':self.base_step[subchnl],
+                                                'decimals':self.base_decimals[subchnl]
+                                                }
+            dds_prop[f'channel {i:d}']['gate'] = {}
 
 
         # Create the output objects

@@ -74,19 +74,19 @@ class DG4000Worker(SignalGeneratorWorker):
         print('Connected to \n', ident_string)
     
         # define instrument specific read and write strings for Freq & Amp control
-        self.freq_write_string = 'SOUR1:FREQ:FIX {:.6f}' # in Hz
-        self.freq_query_string = 'SOUR1:FREQ:FIX?' # DG4000 returns float, in Hz
+        self.freq_write_string = 'SOUR{chan:d}:FREQ:FIX {:.6f}' # in Hz
+        self.freq_query_string = 'SOUR{chan:d}:FREQ:FIX?' # DG4000 returns float, in Hz
         
         # define amplitude string
-        self.amp_write_string = 'SOUR1:VOLT {:.4f}' # in Vpp
-        self.amp_query_string = 'SOUR1:VOLT?' # in Vpp
+        self.amp_write_string = 'SOUR{chan:d}:VOLT {:.4f}' # in Vpp
+        self.amp_query_string = 'SOUR{chan:d}:VOLT?' # in Vpp
         
         # initialize sig-gen now that write/query strings are defined
         SignalGeneratorWorker.init(self)
 
     # define correct output enable command strings
-    enable_write_string = enable_on_off_formatter('OUTP:STAT {:s}')
-    enable_query_string = 'OUTP:STAT?'
+    enable_write_string = enable_on_off_formatter('OUTP{chan:d}:STAT {:s}')
+    enable_query_string = 'OUTP{chan:d}:STAT?'
     def enable_parser(self,enable_string):
         '''Output Enable Query for DG4000.'''
         return 'ON' in enable_string
