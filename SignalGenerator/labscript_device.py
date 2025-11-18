@@ -48,7 +48,7 @@ class SignalGenerator(VISA):
     def quantise_freq(self,data, device):
         '''Quantize the frequency in units of Hz and check it's within bounds'''
         # It's faster to add 0.5 then typecast than to round to integers first (device is programmed in Hz):    
-        data = np.array((self.scale_factor*data)+0.5, dtype=np.uint64)
+        data = np.array(self.scale_factor*data, dtype=np.float64)
 
         # Ensure that frequencies are within bounds:
         if any(data < self.freq_limits[0] )  or any(data > self.freq_limits[1] ):
