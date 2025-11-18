@@ -102,6 +102,9 @@ class SignalGeneratorWorker(VISAWorker):
         # initialize the smart cache
         self.smart_cache = {'STATIC_DATA': {}}
         self.subchnls = ['freq', 'amp', 'gate']
+        self.sub_sf = {'freq': self.scale_factor,
+                       'amp': self.amp_scale_factor,
+                       'gate': 1}  # converts programming units to BLACS units
 
         # set static smart cache to current state
         current_state = self.check_remote_values()
@@ -203,23 +206,17 @@ class SignalGeneratorWorker(VISAWorker):
             num_chan = len(data)//len(self.subchnls)
             channels = [int(name[-1]) for name in data.dtype.names[0:num_chan]]
 
-            if fresh or data != self.smart_cache['STATIC_DATA']:
-
-                sub_sf = {'freq': self.scale_factor,
-                          'amp': self.amp_scale_factor,
-                          'gate': 1}  # converts programming units to BLACS units
-
-                for i in channels:
-                    for sub in self.subchnls:
-                        # program freq and amplitude as necessary
-                        desired_value = data[sub+str(i)]
-                        curr_value = self.smart_cache['STATIC_DATA'][sub+str(i)]
-                        if curr_value != desired_value or fresh:
-                            self.program_static_value(i, sub, desired_value)
-                            # update smart cache to reflect programmed changes
-                            self.smart_cache['STATIC_DATA'][sub+str(i)] = desired_value
-                            # update final values to reflect programmed values
-                            self.final_values[f'channel {i:d}'][sub] = desired_value / sub_sf[sub]
+            for i in channels:
+                for sub in self.subchnls:
+                    # program freq and amplitude as necessary
+                    desired_value = data[sub+str(i)]
+                    curr_value = self.smart_cache['STATIC_DATA'][sub+str(i)]
+                    if curr_value != desired_value or fresh:
+                        self.program_static_value(i, sub, desired_value)
+                        # update smart cache to reflect programmed changes
+                        self.smart_cache['STATIC_DATA'][sub+str(i)] = desired_value
+                        # update final values to reflect programmed values
+                        self.final_values[f'channel {i:d}'][sub] = desired_value / self.sub_sf[sub]
 
         return self.final_values
 
