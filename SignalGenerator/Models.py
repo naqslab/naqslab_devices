@@ -197,29 +197,13 @@ class DG4000(SignalGenerator):
     scale_factor = 1.0 # ensure that the BLACS worker class has same scale_factor
     amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
     # define variable limit
-    freq_max = 0
+    freq_limits = (1e-6, 80e6) # in Hz
+    amp_limits = (1e-3, 10) # in Vpp
     allowed_chans = [1, 2]
     """Maximum output frequency of the device.
     
     Note: actual max frequency is mode dependent.
     """
-    
-    @set_passed_properties(property_names = {
-        'connection_table_properties': ['freq_max',
-                                       ]
-        })
-    def __init__(self, name, VISA_name):
-        """Saves the user specified output to use and saves for reading by
-        BLACS_Tab.
-        
-        Specific models of this series subclass this class.
-        
-        Args:
-            name (str): variable name to create labscript_device under
-            VISA_name (str): the VISA connection string to the physical device
-        """      
-        # finish initialization with parent __init__
-        SignalGenerator.__init__(self,name,VISA_name)
 
     def get_default_unit_conversion_classes(self, device):
         """Child devices call this during their `__init__` to get default unit conversions.
@@ -231,8 +215,8 @@ class DG4000(SignalGenerator):
 
 class DG4202(DG4000):
     description = 'Rigol DG4202 Function Generator'
-    freq_max = 200e6 # in Hz
+    freq_limits = (1e-6, 200e6) # in Hz
 
 class DG4162(DG4000):
     description = 'Rigol DG4162 Function Generator'
-    freq_max = 160e6 # in Hz
+    freq_limits = (1e-6, 160e6) # in Hz

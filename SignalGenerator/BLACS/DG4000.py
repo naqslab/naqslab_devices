@@ -42,12 +42,12 @@ class DG4000Tab(SignalGeneratorTab):
         # get connection_table properties for configuration
         connection_object = self.settings['connection_table'].find_by_name(self.device_name)
         conn_props = connection_object.properties
-        self.freq_max = conn_props.get('freq_max')
+        freq_max = conn_props.get('freq_limits')[1]
         
         # use labscript_device defined freq limits to set BLACS Tab limits
         # need to convert from scaled unit to do so
                             
-        self.base_max = {'freq':self.freq_max,
+        self.base_max = {'freq':freq_max,
                         'amp':10.0} # output impedance dependent
         
         # call parent to finish initialisation of GUI
