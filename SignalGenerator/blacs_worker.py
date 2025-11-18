@@ -109,7 +109,6 @@ class SignalGeneratorWorker(VISAWorker):
         # set static smart cache to current state
         current_state = self.check_remote_values()
         self.update_cache_from_dict(current_state)
-        print(self.smart_cache)
 
     def check_remote_values(self):
         # Get the currently output values:
