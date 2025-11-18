@@ -12,6 +12,7 @@
 from naqslab_devices.SignalGenerator.labscript_device import SignalGenerator
 from labscript import set_passed_properties, LabscriptError
 from labscript_utils import dedent
+from labscript_utils.unitconversions.generic_frequency import FreqConversion
 
 __version__ = '0.1.0'
 __author__ = ['dihm']
@@ -187,3 +188,35 @@ class SRS_SG386(SRS_SG380):
     # define the scale factor - converts between BLACS front panel and 
     # Writing: scale*desired_freq // Reading:desired_freq/scale
     RF_freq_max = 6.075e9
+
+
+class DG4000(SignalGenerator):
+    description = 'Base DG4000 device class that defines option'
+    # define the scale factor - converts between BLACS front panel and 
+    # Writing: scale*desired_freq // Reading:desired_freq/scale
+    scale_factor = 1.0 # ensure that the BLACS worker class has same scale_factor
+    amp_scale_factor = 1.0 # ensure that the BLACS worker class has same amp_scale_factor
+    # define variable limit
+    freq_limits = (1e-6, 80e6) # in Hz
+    amp_limits = (1e-3, 10) # in Vpp
+    allowed_chans = [1, 2]
+    """Maximum output frequency of the device.
+    
+    Note: actual max frequency is mode dependent.
+    """
+
+    def get_default_unit_conversion_classes(self, device):
+        """Child devices call this during their `__init__` to get default unit conversions.
+
+        If user has not overridden, will use generic FreqConversion class.        
+        """
+
+        return FreqConversion, None, None
+
+class DG4202(DG4000):
+    description = 'Rigol DG4202 Function Generator'
+    freq_limits = (1e-6, 200e6) # in Hz
+
+class DG4162(DG4000):
+    description = 'Rigol DG4162 Function Generator'
+    freq_limits = (1e-6, 160e6) # in Hz

@@ -84,3 +84,13 @@ labscript_devices.register_classes(
     'SRS_SG386',
     BLACS_tab='naqslab_devices.SignalGenerator.BLACS.SRS_SG380.SRS_SG380Tab',
     runviewer_parser='')
+
+labscript_devices.register_classes(
+    'DG4202',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.DG4000.DG4000Tab',
+    runviewer_parser='')
+
+labscript_devices.register_classes(
+    'DG4162',
+    BLACS_tab='naqslab_devices.SignalGenerator.BLACS.DG4000.DG4000Tab',
+    runviewer_parser='')

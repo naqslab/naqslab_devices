@@ -105,7 +105,7 @@ class StaticFreqAmp(StaticDDS):
         """
 
         if not {'phase_limits','phase_conv_class','phase_conv_params'}.isdisjoint(kwargs.keys()):
-            raise LabscriptError(f'{self.device.name} does not support any phase configurations.')
+            raise LabscriptError(f'{self.name} does not support any phase configurations.')
 
         super().__init__(*args,**kwargs)
         # set default values within limits specified
@@ -114,8 +114,8 @@ class StaticFreqAmp(StaticDDS):
             parent_device = kwargs['parent_device']
         except KeyError:
             parent_device = args[1]
-        freq_limits = kwargs.get('freq_limits')
-        amp_limits = kwargs.get('amp_limits')
+        freq_limits = kwargs.get('freq_limits', parent_device.freq_limits)
+        amp_limits = kwargs.get('amp_limits', parent_device.amp_limits)
         if freq_limits is not None:
             self.frequency.default_value = freq_limits[0]
         else:
